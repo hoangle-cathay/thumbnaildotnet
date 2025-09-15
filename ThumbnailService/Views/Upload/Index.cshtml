@@ -1,0 +1,13 @@
+@{
+    ViewData["Title"] = "Upload Image";
+}
+<h2>Upload Image</h2>
+<form method="post" enctype="multipart/form-data" action="/Upload/Upload">
+    <div class="mb-3">
+        <input class="form-control" type="file" name="file" accept="image/png,image/jpeg" required />
+    </div>
+    <button class="btn btn-primary" type="submit">Upload</button>
+    <div class="text-danger">@Html.ValidationSummary()</div>
+</form>
+
+

@@ -1,0 +1,36 @@
+@model System.Collections.Generic.List<ThumbnailService.Models.ImageUpload>
+@{
+    ViewData["Title"] = "My Images";
+}
+<h2>My Images</h2>
+<a class="btn btn-success mb-3" href="/Upload">Upload New</a>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>File Name</th>
+            <th>Size</th>
+            <th>Uploaded</th>
+            <th>Thumbnail Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var i in Model)
+    {
+        <tr>
+            <td>@i.OriginalFileName</td>
+            <td>@i.FileSizeBytes</td>
+            <td>@i.UploadedAtUtc.ToString("u")</td>
+            <td>@i.ThumbnailStatus</td>
+            <td>
+                @if (i.ThumbnailStatus == ThumbnailService.Models.ThumbnailStatus.Completed)
+                {
+                    <a class="btn btn-primary btn-sm" href="/Image/DownloadThumbnail/@i.Id">Download Thumbnail</a>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+ </table>
+
+
