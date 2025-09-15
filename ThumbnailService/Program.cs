@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using ThumbnailService.Models;
-using Google.Cloud.Storage.V1;
 using ThumbnailService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,9 +26,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddSession();
 
-// GCS StorageClient and app services
-builder.Services.AddSingleton(StorageClient.Create());
-builder.Services.AddSingleton<IStorageService, StorageService>();
+// GCP services (Storage, etc.)
+builder.Services.AddGoogleCloudServices(builder.Configuration);
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
 // Encryption service: prefer Secret Manager, then env, then dev fallback

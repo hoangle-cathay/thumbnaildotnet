@@ -165,3 +165,4 @@
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ThumbnailService.pdb
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ThumbnailService.genruntimeconfig.cache
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ref/ThumbnailService.dll
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ThumbnailService.sourcelink.json
