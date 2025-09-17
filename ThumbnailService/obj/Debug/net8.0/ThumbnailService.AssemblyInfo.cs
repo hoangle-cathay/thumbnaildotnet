@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ThumbnailService")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9f373d3e9529df0b0ed5de3638b1c787e7a819e6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+182072ec91723ca1ec96b2a9cc8e227c69659722")]
 [assembly: System.Reflection.AssemblyProductAttribute("ThumbnailService")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ThumbnailService")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

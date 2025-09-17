@@ -14,18 +14,20 @@ namespace ThumbnailService.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IStorageService _storage;
-        private readonly IThumbnailService _thumbnail;
+    private readonly IThumbnailService _thumbnail;
+    private readonly PubSubService _pubSub;
 
         private readonly string _originalsBucket;
         private readonly string _thumbnailsBucket;
 
-        public UploadController(AppDbContext db, IStorageService storage, IThumbnailService thumbnail, IConfiguration config)
+    public UploadController(AppDbContext db, IStorageService storage, IThumbnailService thumbnail, PubSubService pubSub, IConfiguration config)
         {
             _db = db;
             _storage = storage;
             _thumbnail = thumbnail;
             _originalsBucket = config.GetValue<string>("Gcp:OriginalsBucket") ?? string.Empty;
             _thumbnailsBucket = config.GetValue<string>("Gcp:ThumbnailsBucket") ?? string.Empty;
+            _pubSub = pubSub;
         }
 
         [HttpGet]
@@ -49,9 +51,8 @@ namespace ThumbnailService.Controllers
                 return View("Index");
             }
 
-            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
             var originalObjectName = $"originals/{userId}/{Guid.NewGuid()}_{file.FileName}";
-
             await using var stream = file.OpenReadStream();
             await _storage.UploadAsync(_originalsBucket, originalObjectName, stream, contentType);
 
@@ -67,19 +68,23 @@ namespace ThumbnailService.Controllers
             _db.ImageUploads.Add(image);
             await _db.SaveChangesAsync();
 
-            // Generate thumbnail synchronously after upload
-            await using var thumbInputStream = file.OpenReadStream();
-            var thumbBytes = await _thumbnail.GenerateFilledThumbnailAsync(thumbInputStream);
-            var thumbObjectName = $"thumbnails/{userId}/{image.Id}.png";
-            await using var thumbStream = new MemoryStream(thumbBytes);
-            await _storage.UploadAsync(_thumbnailsBucket, thumbObjectName, thumbStream, "image/png");
+            // Publish event for async thumbnail creation (Pub/Sub)
+            await PublishThumbnailJobAsync(image.Id, userId, originalObjectName);
 
-            image.ThumbnailGcsPath = thumbObjectName;
-            image.ThumbnailStatus = ThumbnailStatus.Completed;
-            await _db.SaveChangesAsync();
-
-            TempData["Message"] = "Upload and thumbnail complete";
+            TempData["Message"] = "Upload complete. Thumbnail will be generated soon.";
             return RedirectToAction("List", "Image");
+        }
+
+        // This method should publish a message to Pub/Sub for async thumbnail creation
+        private async Task PublishThumbnailJobAsync(Guid imageId, Guid userId, string gcsPath)
+        {
+            var job = new ThumbnailService.Services.ThumbnailJob
+            {
+                ImageId = imageId,
+                UserId = userId,
+                GcsPath = gcsPath
+            };
+            await _pubSub.PublishAsync(job);
         }
     }
 }

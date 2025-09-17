@@ -1,49 +1,44 @@
-
 using Google.Cloud.Storage.V1;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using ThumbnailService.Models;
 using ThumbnailService.Services;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
-// ✅ 1. Register MVC services
-builder.Services.AddControllersWithViews(); // This is required for controllers and views
-builder.Services.AddRazorPages(); // This is required for Razor Pages
+// MVC
+builder.Services.AddControllersWithViews();
+builder.Services.AddRazorPages();
 
-// Configure Kestrel to listen on the port from the PORT environment variable if set
+// Kestrel listen on PORT (Cloud Run)
 var portEnv = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 {
     builder.WebHost.ConfigureKestrel(options =>
     {
         options.ListenAnyIP(port);
+        options.Limits.MaxRequestBodySize = 104857600; // 100 MB
     });
 }
 
-
-// Add services to the container.
-builder.Services.AddControllersWithViews();
-
-// Register StorageClient
-builder.Services.AddSingleton(StorageClient => GoogleStorageService.CreateClientFromEnvironment());
-
-// Register IStorageService with your implementation
+// GCS + Services
+builder.Services.AddSingleton(provider => GoogleStorageService.CreateClientFromEnvironment());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
-
-// Register IThumbnailService
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
-// Register DbContext with PostgreSQL
+// PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CloudSqlPostgres")));
 
+// Multipart upload limit (100 MB)
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600; 
+});
 
 var app = builder.Build();
 
-// --------------------
-// 2️⃣ Configure middleware
-// --------------------
+// Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -51,41 +46,33 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();  // wwwroot
+app.UseStaticFiles();
 app.UseRouting();
 
-// --------------------
-// 3️⃣ Map routes
-// --------------------
+// Routes
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
 
-// Optional: redirect root "/" to Home/Index
 app.MapGet("/", context =>
 {
     context.Response.Redirect("/Home/Index");
     return Task.CompletedTask;
 });
-// ------------------------------------
-// ====================================
 
-
-// 1. Load GOOGLE_APPLICATION_CREDENTIALS from environment variable
+// Debug: List buckets
 var credPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
 if (string.IsNullOrWhiteSpace(credPath))
 {
-    Console.WriteLine("GOOGLE_APPLICATION_CREDENTIALS environment variable is not set.");
+    Console.WriteLine("GOOGLE_APPLICATION_CREDENTIALS not set.");
 }
 else
 {
     Console.WriteLine($"Using credentials from: {credPath}");
-    // 2. Connect to Google Cloud Storage in project "hoangassignment"
     var storageClient = StorageClient.Create();
     try
     {
-        // 3. List all buckets and write output to console
         Console.WriteLine("Buckets in project 'hoangassignment':");
         foreach (var bucket in storageClient.ListBuckets("hoangassignment"))
         {

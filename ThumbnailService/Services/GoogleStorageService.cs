@@ -17,6 +17,24 @@ namespace ThumbnailService.Services
 
         public async Task<string> UploadAsync(string bucket, string objectName, System.IO.Stream content, string contentType)
         {
+            // If bucket is "local-xxx" save at Local instead of GCS
+            if (bucket.StartsWith("local-"))
+            {
+                var basePath = Path.Combine(Directory.GetCurrentDirectory(), "local_storage", bucket);
+                Directory.CreateDirectory(basePath);
+
+                var safeFileName = objectName.Replace("/", "_");
+                var filePath = Path.Combine(basePath, safeFileName);
+
+                using (var fileStream = File.Create(filePath))
+                {
+                    await content.CopyToAsync(fileStream);
+                }
+
+                Console.WriteLine($"[LOCAL STORAGE] Saved file: {filePath}");
+                return $"file://{filePath}";
+            }
+
             try
             {
                 var obj = await _storageClient.UploadObjectAsync(bucket, objectName, contentType, content);
