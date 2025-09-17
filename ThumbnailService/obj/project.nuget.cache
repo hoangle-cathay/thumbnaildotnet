@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "JmYFw5/nLsc=",
+  "dgSpecHash": "jcL3qFMFNxw=",
   "success": true,
   "projectFilePath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
   "expectedPackageFiles": [
@@ -12,8 +12,9 @@
     "/Users/leduyhoang/.nuget/packages/google.apis.auth/1.69.0/google.apis.auth.1.69.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/google.apis.core/1.69.0/google.apis.core.1.69.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/google.apis.storage.v1/1.69.0.3707/google.apis.storage.v1.1.69.0.3707.nupkg.sha512",
-    "/Users/leduyhoang/.nuget/packages/google.cloud.iam.v1/3.2.0/google.cloud.iam.v1.3.2.0.nupkg.sha512",
+    "/Users/leduyhoang/.nuget/packages/google.cloud.iam.v1/3.4.0/google.cloud.iam.v1.3.4.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/google.cloud.location/2.2.0/google.cloud.location.2.2.0.nupkg.sha512",
+    "/Users/leduyhoang/.nuget/packages/google.cloud.pubsub.v1/3.27.0/google.cloud.pubsub.v1.3.27.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/google.cloud.secretmanager.v1/2.6.0/google.cloud.secretmanager.v1.2.6.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/google.cloud.storage.v1/4.13.0/google.cloud.storage.v1.4.13.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/google.protobuf/3.31.1/google.protobuf.3.31.1.nupkg.sha512",

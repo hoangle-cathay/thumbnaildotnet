@@ -44,6 +44,10 @@
         "net8.0": {
           "targetAlias": "net8.0",
           "dependencies": {
+            "Google.Cloud.PubSub.V1": {
+              "target": "Package",
+              "version": "[3.27.0, )"
+            },
             "Google.Cloud.SecretManager.V1": {
               "target": "Package",
               "version": "[2.6.0, )"
