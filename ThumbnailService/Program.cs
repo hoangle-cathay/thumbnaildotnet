@@ -1,5 +1,8 @@
 
 using Google.Cloud.Storage.V1;
+using Microsoft.EntityFrameworkCore;
+using ThumbnailService.Models;
+using ThumbnailService.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,6 +20,24 @@ if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
         options.ListenAnyIP(port);
     });
 }
+
+
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+
+// Register StorageClient
+builder.Services.AddSingleton(StorageClient => GoogleStorageService.CreateClientFromEnvironment());
+
+// Register IStorageService with your implementation
+builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
+
+// Register IThumbnailService
+builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
+
+// Register DbContext with PostgreSQL
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("CloudSqlPostgres")));
+
 
 var app = builder.Build();
 

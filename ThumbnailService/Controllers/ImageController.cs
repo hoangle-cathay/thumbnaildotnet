@@ -20,6 +20,16 @@ namespace ThumbnailService.Controllers
             _db = db;
             _storage = storage;
             _thumbnailsBucket = config.GetValue<string>("Gcp:ThumbnailsBucket") ?? string.Empty;
+
+            // In a real app, you would get the user ID from the authenticated user context
+            // For local debugging, you can use a fixed test user ID
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (userIdClaim == null)
+            {
+                // For local debugging, use a fixed test user ID
+                userIdClaim = new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "11111111-1111-1111-1111-111111111111");
+            }
+            var userId = Guid.Parse(userIdClaim.Value);
         }
 
         [HttpGet]

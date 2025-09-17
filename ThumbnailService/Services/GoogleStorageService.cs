@@ -14,15 +14,49 @@ namespace ThumbnailService.Services
             _storageClient = storageClient;
         }
 
+
         public async Task<string> UploadAsync(string bucket, string objectName, System.IO.Stream content, string contentType)
         {
-            var obj = await _storageClient.UploadObjectAsync(bucket, objectName, contentType, content);
-            return obj.MediaLink ?? $"gs://{bucket}/{objectName}";
+            try
+            {
+                var obj = await _storageClient.UploadObjectAsync(bucket, objectName, contentType, content);
+                return obj.MediaLink ?? $"gs://{bucket}/{objectName}";
+            }
+            catch (Exception ex)
+            {
+                // Log or rethrow as needed
+                throw new Exception($"Failed to upload to GCS: {ex.Message}", ex);
+            }
         }
 
         public string GetPublicUrl(string bucket, string objectName)
         {
             return $"https://storage.googleapis.com/{bucket}/{Uri.EscapeDataString(objectName)}";
+        }
+
+        public string GetSignedUrl(string bucket, string objectName, int expiryMinutes = 60)
+        {
+            UrlSigner signer = UrlSigner.FromServiceAccountPath(Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS"));
+            var url = signer.Sign(bucket, objectName, TimeSpan.FromMinutes(expiryMinutes), HttpMethod.Get);
+            return url;
+        }
+
+        public async Task<IList<string>> ListUserObjectsAsync(string bucket, string userIdPrefix)
+        {
+            var results = new List<string>();
+            try
+            {
+                await foreach (var obj in _storageClient.ListObjectsAsync(bucket, userIdPrefix))
+                {
+                    results.Add(obj.Name);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log or rethrow as needed
+                throw new Exception($"Failed to list objects for user: {ex.Message}", ex);
+            }
+            return results;
         }
 
         public static StorageClient CreateClientFromEnvironment()
