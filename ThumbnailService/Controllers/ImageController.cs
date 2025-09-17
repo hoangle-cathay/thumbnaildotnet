@@ -32,10 +32,12 @@ namespace ThumbnailService.Controllers
             //     .ToListAsync();
 
             // Test signed URL for thumbnails
-            var userId = Guid.NewGuid(); // mock user
-            var images = GetDummyImages(userId)
+            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
+            var images = await _db.ImageUploads.Where(i => i.UserId == userId)
                 .OrderByDescending(i => i.UploadedAtUtc)
-                .ToList();
+                .ToListAsync();
+
+            Console.WriteLine($"Found {images.Count} images for user {userId}");
 
             return View(images);
         }

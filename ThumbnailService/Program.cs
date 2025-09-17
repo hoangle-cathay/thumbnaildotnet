@@ -26,6 +26,10 @@ builder.Services.AddSingleton(provider => GoogleStorageService.CreateClientFromE
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
+// PubSubService registration
+var pubsubTopic = builder.Configuration.GetValue<string>("Gcp:ThumbnailJobTopic") ?? string.Empty;
+builder.Services.AddSingleton(new PubSubService(pubsubTopic));
+
 // PostgreSQL
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("CloudSqlPostgres")));

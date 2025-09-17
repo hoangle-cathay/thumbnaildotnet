@@ -168,3 +168,4 @@
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/rjsmcshtml.dswa.cache.json
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.build.json.cache
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.build.endpoints.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/bin/Debug/net8.0/Google.Cloud.PubSub.V1.dll

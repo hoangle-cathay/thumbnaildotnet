@@ -51,6 +51,7 @@ namespace ThumbnailService.Controllers
                 return View("Index");
             }
 
+            //var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
             var originalObjectName = $"originals/{userId}/{Guid.NewGuid()}_{file.FileName}";
             await using var stream = file.OpenReadStream();
@@ -69,7 +70,7 @@ namespace ThumbnailService.Controllers
             await _db.SaveChangesAsync();
 
             // Publish event for async thumbnail creation (Pub/Sub)
-            await PublishThumbnailJobAsync(image.Id, userId, originalObjectName);
+            //await PublishThumbnailJobAsync(image.Id, userId, originalObjectName);
 
             TempData["Message"] = "Upload complete. Thumbnail will be generated soon.";
             return RedirectToAction("List", "Image");

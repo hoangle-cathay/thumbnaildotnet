@@ -8,6 +8,7 @@
     ".NETCoreApp,Version=v8.0": {
       "ThumbnailService/1.0.0": {
         "dependencies": {
+          "Google.Cloud.PubSub.V1": "3.27.0",
           "Google.Cloud.SecretManager.V1": "2.6.0",
           "Google.Cloud.Storage.V1": "4.13.0",
           "Microsoft.AspNetCore.Authentication.Cookies": "2.3.0",
@@ -121,14 +122,14 @@
           }
         }
       },
-      "Google.Cloud.Iam.V1/3.2.0": {
+      "Google.Cloud.Iam.V1/3.4.0": {
         "dependencies": {
           "Google.Api.Gax.Grpc": "4.11.0"
         },
         "runtime": {
           "lib/netstandard2.0/Google.Cloud.Iam.V1.dll": {
-            "assemblyVersion": "3.2.0.0",
-            "fileVersion": "3.2.0.0"
+            "assemblyVersion": "3.4.0.0",
+            "fileVersion": "3.4.0.0"
           }
         }
       },
@@ -143,10 +144,22 @@
           }
         }
       },
+      "Google.Cloud.PubSub.V1/3.27.0": {
+        "dependencies": {
+          "Google.Api.Gax.Grpc": "4.11.0",
+          "Google.Cloud.Iam.V1": "3.4.0"
+        },
+        "runtime": {
+          "lib/netstandard2.0/Google.Cloud.PubSub.V1.dll": {
+            "assemblyVersion": "3.27.0.0",
+            "fileVersion": "3.27.0.0"
+          }
+        }
+      },
       "Google.Cloud.SecretManager.V1/2.6.0": {
         "dependencies": {
           "Google.Api.Gax.Grpc": "4.11.0",
-          "Google.Cloud.Iam.V1": "3.2.0",
+          "Google.Cloud.Iam.V1": "3.4.0",
           "Google.Cloud.Location": "2.2.0"
         },
         "runtime": {
@@ -1214,12 +1227,12 @@
       "path": "google.apis.storage.v1/1.69.0.3707",
       "hashPath": "google.apis.storage.v1.1.69.0.3707.nupkg.sha512"
     },
-    "Google.Cloud.Iam.V1/3.2.0": {
+    "Google.Cloud.Iam.V1/3.4.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-sT/XmplGAn/ZBP7iyJittbPIUae7Rp/QZ3XwANVcmKEbk1WQNxVwTczhoSRHDSyAgKYdBhHs64zp0vh+5NFluQ==",
-      "path": "google.cloud.iam.v1/3.2.0",
-      "hashPath": "google.cloud.iam.v1.3.2.0.nupkg.sha512"
+      "sha512": "sha512-MBs/hyBOiTWZ+v9UHrXjWIxgeJo5q6PI2kmA0HMG3wrL4xIsctZLdM6KQjic8tc3kMnKlPb6gcInN8xQjFiM3g==",
+      "path": "google.cloud.iam.v1/3.4.0",
+      "hashPath": "google.cloud.iam.v1.3.4.0.nupkg.sha512"
     },
     "Google.Cloud.Location/2.2.0": {
       "type": "package",
@@ -1227,6 +1240,13 @@
       "sha512": "sha512-p1iW6v+BGnx9nMTOTInvphpE3OJ1h4FjwnTc4DZIhilbjnB2mkfaP4dpgbcMGqAwJZPl+cTEu/dNJhVwR39ICg==",
       "path": "google.cloud.location/2.2.0",
       "hashPath": "google.cloud.location.2.2.0.nupkg.sha512"
+    },
+    "Google.Cloud.PubSub.V1/3.27.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-GHf6qnGFNgK+nWGSr1OavMbJ6VD3mu4n6lkDWnVeOGeGTHo81MvS72WbnoMA2MlXeXnw7NPvvbdvTYmzCid24w==",
+      "path": "google.cloud.pubsub.v1/3.27.0",
+      "hashPath": "google.cloud.pubsub.v1.3.27.0.nupkg.sha512"
     },
     "Google.Cloud.SecretManager.V1/2.6.0": {
       "type": "package",
