@@ -4,6 +4,10 @@ using Google.Cloud.Storage.V1;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ✅ 1. Register MVC services
+builder.Services.AddControllersWithViews(); // This is required for controllers and views
+builder.Services.AddRazorPages(); // This is required for Razor Pages
+
 // Configure Kestrel to listen on the port from the PORT environment variable if set
 var portEnv = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
@@ -16,12 +20,36 @@ if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 
 var app = builder.Build();
 
-// Minimal API endpoint (optional, for demonstration)
-//app.MapGet("/", () => "Google Cloud Storage Minimal API Test");
-app.MapGet("/", context => {
+// --------------------
+// 2️⃣ Configure middleware
+// --------------------
+if (!app.Environment.IsDevelopment())
+{
+    app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
+}
+
+app.UseHttpsRedirection();
+app.UseStaticFiles();  // wwwroot
+app.UseRouting();
+
+// --------------------
+// 3️⃣ Map routes
+// --------------------
+app.MapControllerRoute(
+    name: "default",
+    pattern: "{controller=Home}/{action=Index}/{id?}"
+);
+
+// Optional: redirect root "/" to Home/Index
+app.MapGet("/", context =>
+{
     context.Response.Redirect("/Home/Index");
     return Task.CompletedTask;
 });
+// ------------------------------------
+// ====================================
+
 
 // 1. Load GOOGLE_APPLICATION_CREDENTIALS from environment variable
 var credPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");

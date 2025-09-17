@@ -13,9 +13,9 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:8080",
+      "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "GOOGLE_APPLICATION_CREDENTIALS": "/Users/leduyhoang/.gcp/hoangassignment-fadb0d5e998a.json"
       }
     },
     "IIS Express": {
