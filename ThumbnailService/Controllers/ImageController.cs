@@ -8,7 +8,7 @@ using ThumbnailService.Services;
 
 namespace ThumbnailService.Controllers
 {
-    [Authorize]
+    //[Authorize]
     public class ImageController : Controller
     {
         private readonly AppDbContext _db;

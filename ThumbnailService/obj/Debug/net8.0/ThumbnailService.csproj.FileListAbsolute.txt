@@ -151,11 +151,6 @@
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ThumbnailService.RazorAssemblyInfo.cs
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.build.json
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.development.json
-/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets/msbuild.ThumbnailService.Microsoft.AspNetCore.StaticWebAssets.props
-/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets/msbuild.build.ThumbnailService.props
-/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets/msbuild.buildMultiTargeting.ThumbnailService.props
-/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets/msbuild.buildTransitive.ThumbnailService.props
-/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.pack.json
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/scopedcss/Views/Shared/_Layout.cshtml.rz.scp.css
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/scopedcss/bundle/ThumbnailService.styles.css
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/scopedcss/projectbundle/ThumbnailService.bundle.scp.css
@@ -166,3 +161,10 @@
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ThumbnailService.genruntimeconfig.cache
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ref/ThumbnailService.dll
 /Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/ThumbnailService.sourcelink.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/bin/Debug/net8.0/ThumbnailService.staticwebassets.endpoints.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/rpswa.dswa.cache.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/rjimswa.dswa.cache.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/rjsmrazor.dswa.cache.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/rjsmcshtml.dswa.cache.json
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.build.json.cache
+/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/obj/Debug/net8.0/staticwebassets.build.endpoints.json

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "STy2+VpjMKQ=",
+  "dgSpecHash": "JmYFw5/nLsc=",
   "success": true,
   "projectFilePath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
   "expectedPackageFiles": [
@@ -104,8 +104,10 @@
     {
       "code": "NU1902",
       "level": "Warning",
-      "warningLevel": 1,
       "message": "Package 'SixLabors.ImageSharp' 3.1.9 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
+      "projectPath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
+      "warningLevel": 1,
+      "filePath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
       "libraryId": "SixLabors.ImageSharp",
       "targetGraphs": [
         "net8.0"

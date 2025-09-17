@@ -9,7 +9,7 @@ using ThumbnailService.Services;
 
 namespace ThumbnailService.Controllers
 {
-    [Authorize]
+    //[Authorize]
     public class UploadController : Controller
     {
         private readonly AppDbContext _db;
