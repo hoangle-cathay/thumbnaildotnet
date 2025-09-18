@@ -1,6 +1,6 @@
 # Build artifacts
-bin/
-obj/
+ThumbnailService/bin/
+ThumbnailService/obj/
 
 # User-specific files
 *.user
