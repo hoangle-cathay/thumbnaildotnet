@@ -3,6 +3,10 @@
     ViewData["Title"] = "My Images";
 }
 <h2>My Images</h2>
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
 <a class="btn btn-success mb-3" href="/Upload">Upload New</a>
 <table class="table table-striped">
     <thead>
