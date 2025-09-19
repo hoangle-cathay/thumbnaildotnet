@@ -46,6 +46,10 @@ namespace ThumbnailService.Controllers
         {
             var bucket = cloudEvent["data"]?["bucket"]?.ToString();
             var name = cloudEvent["data"]?["name"]?.ToString();
+
+            // Log ngay khi nhận EventArc
+            _logger.LogInformation("Received EventArc event: bucket={bucket}, name={name}", bucket, name);
+
             if (bucket != _originalsBucket || string.IsNullOrEmpty(name))
             {
                 _logger.LogWarning("Event for wrong bucket or missing name: {bucket} {name}", bucket, name);
@@ -63,16 +67,15 @@ namespace ThumbnailService.Controllers
 
             try
             {
-                // Download original to MemoryStream
+                // Download original
                 await using var originalStream = new MemoryStream();
                 await _storage.DownloadObjectAsync(_originalsBucket, name, originalStream);
                 originalStream.Position = 0;
+                _logger.LogInformation("Downloaded original image {name} ({size} bytes) from bucket {bucket}", name, originalStream.Length, bucket);
 
-                // Detect image format
+                // Detect format & load image
                 IImageFormat format = Image.DetectFormat(originalStream);
-                originalStream.Position = 0; // reset stream
-
-                // Load image
+                originalStream.Position = 0;
                 using Image imageSharp = Image.Load(originalStream);
 
                 // Resize
@@ -96,7 +99,7 @@ namespace ThumbnailService.Controllers
                     ext = "png";
                 }
 
-                // Save to MemoryStream
+                // Save thumbnail to stream
                 await using var thumbStream = new MemoryStream();
                 await imageSharp.SaveAsync(thumbStream, encoder);
                 thumbStream.Position = 0;
@@ -110,6 +113,7 @@ namespace ThumbnailService.Controllers
                     {
                         thumbStream.Position = 0;
                         await _storage.UploadAsync(_thumbnailsBucket, thumbObjectName, thumbStream, format.DefaultMimeType);
+                        _logger.LogInformation("Uploaded thumbnail {thumbObjectName} to bucket {bucket}", thumbObjectName, _thumbnailsBucket);
                         break;
                     }
                     catch (Exception ex)
@@ -125,7 +129,7 @@ namespace ThumbnailService.Controllers
                 await _db.SaveChangesAsync();
 
                 stopwatch.Stop();
-                _logger.LogInformation("Thumbnail generated for image {id} ({originalSize} bytes -> {thumbSize} bytes) in {ms}ms",
+                _logger.LogInformation("Thumbnail processing completed for image {id}: original {originalSize} bytes -> thumbnail {thumbSize} bytes in {ms}ms",
                     image.Id, originalStream.Length, thumbStream.Length, stopwatch.ElapsedMilliseconds);
 
                 return Ok();
