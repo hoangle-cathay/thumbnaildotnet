@@ -44,34 +44,43 @@ namespace ThumbnailService.Controllers
         [HttpPost]
         public async Task<IActionResult> HandleGcsEvent([FromBody] JObject cloudEvent)
         {
-            var bucket = cloudEvent["data"]?["bucket"]?.ToString();
-            var name = cloudEvent["data"]?["name"]?.ToString();
-
-            // Log ngay khi nhận EventArc
-            _logger.LogInformation("Received EventArc event: bucket={bucket}, name={name}", bucket, name);
-
-            if (bucket != _originalsBucket || string.IsNullOrEmpty(name))
-            {
-                _logger.LogWarning("Event for wrong bucket or missing name: {bucket} {name}", bucket, name);
-                return BadRequest();
-            }
-
-            var image = await _db.ImageUploads.FirstOrDefaultAsync(i => i.OriginalGcsPath == name);
-            if (image == null)
-            {
-                _logger.LogWarning("No DB record for GCS object: {name}", name);
-                return NotFound();
-            }
-
-            var stopwatch = Stopwatch.StartNew();
-
             try
             {
-                // Download original
+                _logger.LogInformation("==== EventArc called ====");
+                _logger.LogInformation("Full payload: {payload}", cloudEvent.ToString());
+
+                // Parse bucket & object name
+                var bucket = cloudEvent["data"]?["bucket"]?.ToString();
+                var name = cloudEvent["data"]?["name"]?.ToString();
+                _logger.LogInformation("Parsed bucket={bucket}, name={name}", bucket, name);
+
+                if (string.IsNullOrEmpty(bucket) || string.IsNullOrEmpty(name))
+                {
+                    _logger.LogWarning("Missing bucket or object name in event");
+                    return BadRequest("Missing bucket or name");
+                }
+
+                if (bucket != _originalsBucket)
+                {
+                    _logger.LogWarning("Event for wrong bucket: {bucket}", bucket);
+                    return BadRequest("Wrong bucket");
+                }
+
+                // Find DB record
+                var image = await _db.ImageUploads.FirstOrDefaultAsync(i => i.OriginalGcsPath == name);
+                if (image == null)
+                {
+                    _logger.LogWarning("No DB record found for object: {name}", name);
+                    return NotFound("DB record not found");
+                }
+
+                var stopwatch = Stopwatch.StartNew();
+
+                // Download original image
                 await using var originalStream = new MemoryStream();
                 await _storage.DownloadObjectAsync(_originalsBucket, name, originalStream);
                 originalStream.Position = 0;
-                _logger.LogInformation("Downloaded original image {name} ({size} bytes) from bucket {bucket}", name, originalStream.Length, bucket);
+                _logger.LogInformation("Downloaded original image {name} ({size} bytes)", name, originalStream.Length);
 
                 // Detect format & load image
                 IImageFormat format = Image.DetectFormat(originalStream);
@@ -106,6 +115,7 @@ namespace ThumbnailService.Controllers
 
                 var thumbObjectName = $"thumbnails/{image.UserId}/{image.Id}_{DateTime.UtcNow:yyyyMMddHHmmss}.{ext}";
 
+                // Upload thumbnail with retry
                 const int maxRetries = 3;
                 for (int attempt = 1; attempt <= maxRetries; attempt++)
                 {
@@ -124,6 +134,7 @@ namespace ThumbnailService.Controllers
                     }
                 }
 
+                // Update DB
                 image.ThumbnailGcsPath = thumbObjectName;
                 image.ThumbnailStatus = ThumbnailStatus.Completed;
                 await _db.SaveChangesAsync();
@@ -132,11 +143,11 @@ namespace ThumbnailService.Controllers
                 _logger.LogInformation("Thumbnail processing completed for image {id}: original {originalSize} bytes -> thumbnail {thumbSize} bytes in {ms}ms",
                     image.Id, originalStream.Length, thumbStream.Length, stopwatch.ElapsedMilliseconds);
 
-                return Ok();
+                return Ok("Thumbnail processed");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed processing image {name}", name);
+                _logger.LogError(ex, "Error processing EventArc payload");
                 return StatusCode(500, "Thumbnail processing failed");
             }
         }
