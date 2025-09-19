@@ -13,6 +13,8 @@ using SixLabors.ImageSharp.Processing;
 using ThumbnailService.Models;
 using ThumbnailService.Services;
 using System.Diagnostics;
+using CloudNative.CloudEvents;
+using CloudNative.CloudEvents.AspNetCore;
 
 namespace ThumbnailService.Controllers
 {
@@ -42,21 +44,41 @@ namespace ThumbnailService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> HandleGcsEvent([FromBody] JObject cloudEvent)
+        public async Task<IActionResult> HandleGcsEvent()
         {
             try
             {
-                _logger.LogInformation("==== EventArc called ====");
-                _logger.LogInformation("Full payload: {payload}", cloudEvent.ToString());
+                // Parse CloudEvent từ HTTP request
+                CloudEvent cloudEvent;
+                try
+                {
+                    cloudEvent = await HttpContext.Request.ReadCloudEventAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed reading CloudEvent");
+                    return BadRequest("Invalid CloudEvent format");
+                }
 
-                // Parse bucket & object name
-                var bucket = cloudEvent["data"]?["bucket"]?.ToString();
-                var name = cloudEvent["data"]?["name"]?.ToString();
+                _logger.LogInformation("==== EventArc CloudEvent received ====");
+                _logger.LogInformation("Event Type: {type}", cloudEvent.Type);
+                _logger.LogInformation("Event Source: {source}", cloudEvent.Source);
+                _logger.LogInformation("Event Data Content Type: {ctype}", cloudEvent.DataContentType);
+
+                // Parse bucket & object name từ CloudEvent.Data
+                if (cloudEvent.Data is not JObject dataObj)
+                {
+                    _logger.LogWarning("CloudEvent.Data is not a JObject, type={type}", cloudEvent.Data?.GetType().FullName);
+                    return BadRequest("Unexpected event data format");
+                }
+
+                var bucket = dataObj["bucket"]?.ToString();
+                var name = dataObj["name"]?.ToString();
                 _logger.LogInformation("Parsed bucket={bucket}, name={name}", bucket, name);
 
                 if (string.IsNullOrEmpty(bucket) || string.IsNullOrEmpty(name))
                 {
-                    _logger.LogWarning("Missing bucket or object name in event");
+                    _logger.LogWarning("Missing bucket or object name in CloudEvent");
                     return BadRequest("Missing bucket or name");
                 }
 
