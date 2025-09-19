@@ -9,7 +9,7 @@ namespace ThumbnailService.Services
         public static IServiceCollection AddGoogleCloudServices(this IServiceCollection services, IConfiguration configuration)
         {
             // Storage client via ADC or a service account json if configured via env var.
-            services.AddSingleton<StorageClient>(_ => GoogleStorageService.CreateClientFromEnvironment());
+            services.AddSingleton<StorageClient>(_ => StorageClient.Create());
             services.AddSingleton<IStorageService, GoogleStorageService>();
             // Register PubSubService with topic from config
             var topic = configuration.GetValue<string>("Gcp:ThumbnailJobTopic") ?? string.Empty;

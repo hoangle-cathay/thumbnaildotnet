@@ -22,7 +22,7 @@ if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 }
 
 // GCS + Services
-builder.Services.AddSingleton(provider => GoogleStorageService.CreateClientFromEnvironment());
+builder.Services.AddSingleton(provider => StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 

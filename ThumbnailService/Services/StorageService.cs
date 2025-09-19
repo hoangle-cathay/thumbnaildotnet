@@ -8,6 +8,7 @@ namespace ThumbnailService.Services
     {
         Task<string> UploadAsync(string bucket, string objectName, System.IO.Stream content, string contentType);
         string GetPublicUrl(string bucket, string objectName);
+        Task DownloadObjectAsync(string bucket, string objectName, System.IO.Stream destination);
     }
 
     public class StorageService : IStorageService
@@ -28,6 +29,11 @@ namespace ThumbnailService.Services
         public string GetPublicUrl(string bucket, string objectName)
         {
             return $"https://storage.googleapis.com/{bucket}/{Uri.EscapeDataString(objectName)}";
+        }
+
+        public async Task DownloadObjectAsync(string bucket, string objectName, System.IO.Stream destination)
+        {
+            await _storageClient.DownloadObjectAsync(bucket, objectName, destination);
         }
     }
 }

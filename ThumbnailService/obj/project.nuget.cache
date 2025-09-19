@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "zz4tLkEPDSM=",
+  "dgSpecHash": "wMZGt8OXXZk=",
   "success": true,
   "projectFilePath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
   "expectedPackageFiles": [
@@ -78,7 +78,7 @@
     "/Users/leduyhoang/.nuget/packages/newtonsoft.json/13.0.3/newtonsoft.json.13.0.3.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/npgsql/9.0.3/npgsql.9.0.3.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/npgsql.entityframeworkcore.postgresql/9.0.4/npgsql.entityframeworkcore.postgresql.9.0.4.nupkg.sha512",
-    "/Users/leduyhoang/.nuget/packages/sixlabors.imagesharp/3.1.9/sixlabors.imagesharp.3.1.9.nupkg.sha512",
+    "/Users/leduyhoang/.nuget/packages/sixlabors.imagesharp/3.1.11/sixlabors.imagesharp.3.1.11.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/system.buffers/4.6.0/system.buffers.4.6.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/system.codedom/7.0.0/system.codedom.7.0.0.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/system.collections.immutable/7.0.0/system.collections.immutable.7.0.0.nupkg.sha512",
@@ -101,18 +101,5 @@
     "/Users/leduyhoang/.nuget/packages/system.text.json/9.0.9/system.text.json.9.0.9.nupkg.sha512",
     "/Users/leduyhoang/.nuget/packages/system.threading.channels/7.0.0/system.threading.channels.7.0.0.nupkg.sha512"
   ],
-  "logs": [
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "message": "Package 'SixLabors.ImageSharp' 3.1.9 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
-      "projectPath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
-      "warningLevel": 1,
-      "filePath": "/Users/leduyhoang/thumbnaildotnet/thumbnaildotnet/ThumbnailService/ThumbnailService.csproj",
-      "libraryId": "SixLabors.ImageSharp",
-      "targetGraphs": [
-        "net8.0"
-      ]
-    }
-  ]
+  "logs": []
 }

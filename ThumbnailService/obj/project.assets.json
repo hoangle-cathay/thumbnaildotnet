@@ -1512,7 +1512,7 @@
           }
         }
       },
-      "SixLabors.ImageSharp/3.1.9": {
+      "SixLabors.ImageSharp/3.1.11": {
         "type": "package",
         "compile": {
           "lib/net6.0/SixLabors.ImageSharp.dll": {
@@ -4385,10 +4385,10 @@
         "postgresql.png"
       ]
     },
-    "SixLabors.ImageSharp/3.1.9": {
-      "sha512": "8yY4Bcxgw5u7xLWFXb2mK4fbX+0JYJ7eyM19n0inj/cgcHAuIAge982Eiy8vTHT9Zow4HvKJaZKRFBhTNFqD4A==",
+    "SixLabors.ImageSharp/3.1.11": {
+      "sha512": "JfPLyigLthuE50yi6tMt7Amrenr/fA31t2CvJyhy/kQmfulIBAqo5T/YFUSRHtuYPXRSaUHygFeh6Qd933EoSw==",
       "type": "package",
-      "path": "sixlabors.imagesharp/3.1.9",
+      "path": "sixlabors.imagesharp/3.1.11",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
@@ -4397,7 +4397,7 @@
         "lib/net6.0/SixLabors.ImageSharp.dll",
         "lib/net6.0/SixLabors.ImageSharp.xml",
         "sixlabors.imagesharp.128.png",
-        "sixlabors.imagesharp.3.1.9.nupkg.sha512",
+        "sixlabors.imagesharp.3.1.11.nupkg.sha512",
         "sixlabors.imagesharp.nuspec"
       ]
     },
@@ -5075,7 +5075,7 @@
       "Microsoft.Extensions.Logging.Console >= 9.0.9",
       "Npgsql >= 9.0.3",
       "Npgsql.EntityFrameworkCore.PostgreSQL >= 9.0.4",
-      "SixLabors.ImageSharp >= 3.1.9"
+      "SixLabors.ImageSharp >= 3.1.11"
     ]
   },
   "packageFolders": {
@@ -5157,7 +5157,7 @@
           },
           "SixLabors.ImageSharp": {
             "target": "Package",
-            "version": "[3.1.9, )"
+            "version": "[3.1.11, )"
           }
         },
         "imports": [
@@ -5182,17 +5182,5 @@
         "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/9.0.305/PortableRuntimeIdentifierGraph.json"
       }
     }
-  },
-  "logs": [
-    {
-      "code": "NU1902",
-      "level": "Warning",
-      "warningLevel": 1,
-      "message": "Package 'SixLabors.ImageSharp' 3.1.9 has a known moderate severity vulnerability, https://github.com/advisories/GHSA-rxmq-m78w-7wmc",
-      "libraryId": "SixLabors.ImageSharp",
-      "targetGraphs": [
-        "net8.0"
-      ]
-    }
-  ]
+  }
 }
