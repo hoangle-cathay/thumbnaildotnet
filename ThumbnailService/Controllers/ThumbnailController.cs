@@ -4,17 +4,13 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json.Linq;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using ThumbnailService.Models;
 using ThumbnailService.Services;
 using System.Diagnostics;
-using CloudNative.CloudEvents;
-using CloudNative.CloudEvents.AspNetCore;
+using System.Text.Json;
 
 namespace ThumbnailService.Controllers
 {
@@ -31,7 +27,11 @@ namespace ThumbnailService.Controllers
         private readonly int _thumbHeight;
         private readonly bool _crop;
 
-        public ThumbnailController(AppDbContext db, IStorageService storage, IConfiguration config, ILogger<ThumbnailController> logger)
+        public ThumbnailController(
+            AppDbContext db,
+            IStorageService storage,
+            IConfiguration config,
+            ILogger<ThumbnailController> logger)
         {
             _db = db;
             _storage = storage;
@@ -46,130 +46,120 @@ namespace ThumbnailService.Controllers
         [HttpPost]
         public async Task<IActionResult> HandleGcsEvent()
         {
+            _logger.LogInformation("Received GCS event: HandleGcsEvent called.");
+
             try
             {
-                // Parse CloudEvent từ HTTP request
-                CloudEvent cloudEvent;
-                try
+                // ✅ đọc raw body
+                string rawBody;
+                using (var reader = new StreamReader(HttpContext.Request.Body))
                 {
-                    cloudEvent = await HttpContext.Request.ReadCloudEventAsync();
+                    rawBody = await reader.ReadToEndAsync();
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed reading CloudEvent");
-                    return BadRequest("Invalid CloudEvent format");
-                }
+                _logger.LogInformation("Full Event Payload: {payload}", rawBody);
 
-                _logger.LogInformation("==== EventArc CloudEvent received ====");
-                _logger.LogInformation("Event Type: {type}", cloudEvent.Type);
-                _logger.LogInformation("Event Source: {source}", cloudEvent.Source);
-                _logger.LogInformation("Event Data Content Type: {ctype}", cloudEvent.DataContentType);
+                // ✅ parse JSON từ raw body
+                using var doc = JsonDocument.Parse(rawBody);
+                var root = doc.RootElement;
 
-                // Parse bucket & object name từ CloudEvent.Data
-                if (cloudEvent.Data is not JObject dataObj)
+                // bắt buộc phải có bucket + name
+                if (!root.TryGetProperty("bucket", out var bucketProp) ||
+                    !root.TryGetProperty("name", out var nameProp))
                 {
-                    _logger.LogWarning("CloudEvent.Data is not a JObject, type={type}", cloudEvent.Data?.GetType().FullName);
-                    return BadRequest("Unexpected event data format");
+                    _logger.LogWarning("Missing bucket or name in payload: {payload}", rawBody);
+                    return BadRequest("Invalid event payload: missing bucket or name");
                 }
 
-                var bucket = dataObj["bucket"]?.ToString();
-                var name = dataObj["name"]?.ToString();
+                var bucket = bucketProp.GetString();
+                var name = nameProp.GetString();
                 _logger.LogInformation("Parsed bucket={bucket}, name={name}", bucket, name);
 
                 if (string.IsNullOrEmpty(bucket) || string.IsNullOrEmpty(name))
                 {
-                    _logger.LogWarning("Missing bucket or object name in CloudEvent");
-                    return BadRequest("Missing bucket or name");
+                    return BadRequest("Invalid payload: empty bucket or name");
                 }
 
-                if (bucket != _originalsBucket)
+                // ✅ chỉ xử lý nếu là bucket gốc
+                if (!string.Equals(bucket, _originalsBucket, StringComparison.OrdinalIgnoreCase))
                 {
-                    _logger.LogWarning("Event for wrong bucket: {bucket}", bucket);
-                    return BadRequest("Wrong bucket");
+                    _logger.LogInformation("Ignored event for unrelated bucket: {bucket}", bucket);
+                    return Ok("Ignored event");
                 }
 
-                // Find DB record
-                var image = await _db.ImageUploads.FirstOrDefaultAsync(i => i.OriginalGcsPath == name);
+                _logger.LogInformation("Looking for DB record with path: {Path}", name);
+                _logger.LogInformation("Looking up record: DB.OriginalGcsPath vs GCS name => {DbExample} vs {GcsName}",
+                    await _db.ImageUploads.Select(i => i.OriginalGcsPath).FirstOrDefaultAsync(),
+                    name);
+                var allPaths = await _db.ImageUploads.Select(i => i.OriginalGcsPath).ToListAsync();
+                    _logger.LogInformation("DB has paths: {paths}", string.Join(", ", allPaths));
+
+                // ✅ tìm bản ghi DB
+                var image = await _db.ImageUploads.FirstOrDefaultAsync(i => EF.Functions.ILike(i.OriginalGcsPath, name));
+
                 if (image == null)
                 {
                     _logger.LogWarning("No DB record found for object: {name}", name);
-                    return NotFound("DB record not found");
+                    return Ok("No matching DB record");
                 }
 
                 var stopwatch = Stopwatch.StartNew();
 
-                // Download original image
+                // tải file gốc
                 await using var originalStream = new MemoryStream();
                 await _storage.DownloadObjectAsync(_originalsBucket, name, originalStream);
                 originalStream.Position = 0;
-                _logger.LogInformation("Downloaded original image {name} ({size} bytes)", name, originalStream.Length);
 
-                // Detect format & load image
-                IImageFormat format = Image.DetectFormat(originalStream);
-                originalStream.Position = 0;
-                using Image imageSharp = Image.Load(originalStream);
-
-                // Resize
+                // resize thumbnail
+                using var imageSharp = Image.Load(originalStream);
                 imageSharp.Mutate(x => x.Resize(new ResizeOptions
                 {
                     Size = new Size(_thumbWidth, _thumbHeight),
                     Mode = _crop ? ResizeMode.Crop : ResizeMode.Max
                 }));
 
-                // Choose encoder
-                IImageEncoder encoder;
-                string ext;
-                if (format.Name.Equals("JPEG", StringComparison.OrdinalIgnoreCase))
-                {
-                    encoder = new JpegEncoder { Quality = 90 };
-                    ext = "jpg";
-                }
-                else
-                {
-                    encoder = new PngEncoder();
-                    ext = "png";
-                }
-
-                // Save thumbnail to stream
                 await using var thumbStream = new MemoryStream();
-                await imageSharp.SaveAsync(thumbStream, encoder);
+                await imageSharp.SaveAsync(thumbStream, new PngEncoder());
                 thumbStream.Position = 0;
 
-                var thumbObjectName = $"thumbnails/{image.UserId}/{image.Id}_{DateTime.UtcNow:yyyyMMddHHmmss}.{ext}";
+                var thumbObjectName =
+                    $"thumbnails/{image.UserId}/{image.Id}_{DateTime.UtcNow:yyyyMMddHHmmss}.png";
 
-                // Upload thumbnail with retry
+                // retry upload
                 const int maxRetries = 3;
                 for (int attempt = 1; attempt <= maxRetries; attempt++)
                 {
                     try
                     {
                         thumbStream.Position = 0;
-                        await _storage.UploadAsync(_thumbnailsBucket, thumbObjectName, thumbStream, format.DefaultMimeType);
-                        _logger.LogInformation("Uploaded thumbnail {thumbObjectName} to bucket {bucket}", thumbObjectName, _thumbnailsBucket);
+                        await _storage.UploadAsync(_thumbnailsBucket, thumbObjectName, thumbStream, "image/png");
+                        _logger.LogInformation("Uploaded thumbnail {thumbObjectName} to {bucket}",
+                            thumbObjectName, _thumbnailsBucket);
                         break;
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Upload attempt {attempt} failed for {thumbObjectName}", attempt, thumbObjectName);
+                        _logger.LogWarning(ex,
+                            "Upload attempt {attempt} failed for {thumbObjectName}",
+                            attempt, thumbObjectName);
                         if (attempt == maxRetries) throw;
                         await Task.Delay(1000 * attempt);
                     }
                 }
 
-                // Update DB
+                // cập nhật DB
                 image.ThumbnailGcsPath = thumbObjectName;
                 image.ThumbnailStatus = ThumbnailStatus.Completed;
                 await _db.SaveChangesAsync();
 
                 stopwatch.Stop();
-                _logger.LogInformation("Thumbnail processing completed for image {id}: original {originalSize} bytes -> thumbnail {thumbSize} bytes in {ms}ms",
-                    image.Id, originalStream.Length, thumbStream.Length, stopwatch.ElapsedMilliseconds);
+                _logger.LogInformation("Thumbnail done for image {id}: {ms}ms",
+                    image.Id, stopwatch.ElapsedMilliseconds);
 
                 return Ok("Thumbnail processed");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing EventArc payload");
+                _logger.LogError(ex, "Error processing Eventarc payload");
                 return StatusCode(500, "Thumbnail processing failed");
             }
         }
