@@ -8,9 +8,18 @@
     <div class="alert alert-success">@TempData["Message"]</div>
 }
 <a class="btn btn-success mb-3" href="/Upload">Upload New</a>
+
+@inject ThumbnailService.Services.IStorageService StorageService
+@inject Microsoft.Extensions.Configuration.IConfiguration Config
+
+@{
+    var thumbBucket = Config["Gcp:ThumbnailsBucket"] ?? "";
+}
+
 <table class="table table-striped">
     <thead>
         <tr>
+            <th>Preview</th>
             <th>File Name</th>
             <th>Size</th>
             <th>Uploaded</th>
@@ -22,6 +31,17 @@
     @foreach (var i in Model)
     {
         <tr>
+            <td style="width:120px">
+                @if (i.ThumbnailStatus == ThumbnailService.Models.ThumbnailStatus.Completed && !string.IsNullOrEmpty(i.ThumbnailGcsPath))
+                {
+                    var url = StorageService.GetPublicUrl(thumbBucket, i.ThumbnailGcsPath);
+                    <img src="@url" alt="thumbnail" style="max-width:100px;max-height:100px;border:1px solid #ccc;" />
+                }
+                else
+                {
+                    <span class="text-muted">(No thumbnail)</span>
+                }
+            </td>
             <td>@i.OriginalFileName</td>
             <td>@i.FileSizeBytes</td>
             <td>@i.UploadedAtUtc.ToString("u")</td>
@@ -35,6 +55,6 @@
         </tr>
     }
     </tbody>
- </table>
+</table>
 
 

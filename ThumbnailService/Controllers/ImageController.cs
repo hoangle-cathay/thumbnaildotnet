@@ -13,44 +13,53 @@ namespace ThumbnailService.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IStorageService _storage;
-        private readonly string _thumbnailsBucket;
+    private readonly string _thumbnailsBucket;
+    private readonly ILogger<ImageController> _logger;
 
-        public ImageController(AppDbContext db, IStorageService storage, IConfiguration config)
+        public ImageController(AppDbContext db, IStorageService storage, IConfiguration config, ILogger<ImageController> logger)
         {
             _db = db;
             _storage = storage;
             _thumbnailsBucket = config.GetValue<string>("Gcp:ThumbnailsBucket") ?? string.Empty;
+            _logger = logger;
         }
 
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            //var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-            //var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
-            // var images = await _db.ImageUploads.Where(i => i.UserId == userId)
-            //     .OrderByDescending(i => i.UploadedAtUtc)
-            //     .ToListAsync();
-
-            // Test signed URL for thumbnails
             var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
+            _logger.LogInformation("[List] Fetching images for user {UserId}", userId);
             var images = await _db.ImageUploads.Where(i => i.UserId == userId)
                 .OrderByDescending(i => i.UploadedAtUtc)
                 .ToListAsync();
-
-            Console.WriteLine($"Found {images.Count} images for user {userId}");
-
+            _logger.LogInformation("[List] Found {Count} images for user {UserId}", images.Count, userId);
+            foreach (var img in images)
+            {
+                _logger.LogDebug("[List] Image: Id={Id}, File={File}, Thumb={Thumb}, Status={Status}, Uploaded={Uploaded}",
+                    img.Id, img.OriginalFileName, img.ThumbnailGcsPath, img.ThumbnailStatus, img.UploadedAtUtc);
+            }
             return View(images);
         }
 
         [HttpGet]
         public async Task<IActionResult> DownloadThumbnail(Guid id)
         {
-            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+            // For local debugging, use the same hardcoded userId as in List
+            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            _logger.LogInformation("[DownloadThumbnail] User {UserId} requested thumbnail for image {ImageId}", userId, id);
             var img = await _db.ImageUploads.FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
-            if (img == null || string.IsNullOrEmpty(img.ThumbnailGcsPath))
+            if (img == null)
+            {
+                _logger.LogWarning("[DownloadThumbnail] No image found for Id={ImageId} and UserId={UserId}", id, userId);
                 return NotFound();
-
+            }
+            if (string.IsNullOrEmpty(img.ThumbnailGcsPath))
+            {
+                _logger.LogWarning("[DownloadThumbnail] Image {ImageId} for User {UserId} has no thumbnail path", id, userId);
+                return NotFound();
+            }
             var url = _storage.GetPublicUrl(_thumbnailsBucket, img.ThumbnailGcsPath);
+            _logger.LogInformation("[DownloadThumbnail] Redirecting to thumbnail URL: {Url}", url);
             return Redirect(url);
         }
         
