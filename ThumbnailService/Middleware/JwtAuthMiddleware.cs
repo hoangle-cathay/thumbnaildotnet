@@ -32,9 +32,17 @@ namespace ThumbnailService.Middleware
                     return;
                 }
             }
-            else if (context.Request.Path.StartsWithSegments("/Account"))
+            else if (
+                context.Request.Path.StartsWithSegments("/Account") ||
+                context.Request.Path == "/" ||
+                context.Request.Path.StartsWithSegments("/Home") ||
+                context.Request.Path.StartsWithSegments("/favicon.ico") ||
+                context.Request.Path.StartsWithSegments("/css") ||
+                context.Request.Path.StartsWithSegments("/js") ||
+                context.Request.Path.StartsWithSegments("/lib")
+            )
             {
-                // Allow unauthenticated for /Account endpoints
+                // Allow unauthenticated for public endpoints
             }
             else
             {

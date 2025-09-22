@@ -7,8 +7,12 @@ namespace ThumbnailService.Services
     public interface IEncryptionService
     {
         string Encrypt(string plaintext);
-        string Decrypt(string ciphertextBase64);
+        string Decrypt(string ciphertext);
+
+        Task<string> EncryptAsync(string plaintext);
+        Task<string> DecryptAsync(string ciphertext);
     }
+
 
     public class EncryptionService : IEncryptionService
     {
@@ -20,6 +24,7 @@ namespace ThumbnailService.Services
             _key = key;
             _iv = iv;
         }
+
 
         public string Encrypt(string plaintext)
         {
@@ -35,6 +40,12 @@ namespace ThumbnailService.Services
             return Convert.ToBase64String(cipherBytes);
         }
 
+        public Task<string> EncryptAsync(string plaintext)
+        {
+            // Synchronous implementation for compatibility
+            return Task.FromResult(Encrypt(plaintext));
+        }
+
         public string Decrypt(string ciphertextBase64)
         {
             using var aes = Aes.Create();
@@ -47,6 +58,12 @@ namespace ThumbnailService.Services
             var cipherBytes = Convert.FromBase64String(ciphertextBase64);
             var plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
             return Encoding.UTF8.GetString(plainBytes);
+        }
+
+        public Task<string> DecryptAsync(string ciphertextBase64)
+        {
+            // Synchronous implementation for compatibility
+            return Task.FromResult(Decrypt(ciphertextBase64));
         }
     }
 }

@@ -1,3 +1,4 @@
+using Google.Cloud.Kms.V1;
 using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
@@ -7,7 +8,7 @@ using ThumbnailService.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // -------------------------
-// 1️⃣ MVC
+// 1️⃣ MVC & Razor Pages
 // -------------------------
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
@@ -26,9 +27,9 @@ if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 }
 
 // -------------------------
-// 3️⃣ Google Cloud Services
+// 3️⃣ Google Cloud Storage & Thumbnail Services
 // -------------------------
-builder.Services.AddSingleton(provider => StorageClient.Create());
+builder.Services.AddSingleton(StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
@@ -36,16 +37,10 @@ var pubsubTopic = builder.Configuration.GetValue<string>("Gcp:ThumbnailJobTopic"
 builder.Services.AddSingleton(new PubSubService(pubsubTopic));
 
 // -------------------------
-// 4️⃣ PostgreSQL + SecretFetcher + KMS
+// 4️⃣ PostgreSQL + DbContext
 // -------------------------
-var secretFetcher = new SecretFetcher();
-string dbPassword = await secretFetcher.GetDecryptedPasswordAsync();
-
-var connStr = $"Host=/cloudsql/hoangassignment:asia-southeast1:leo-cloudsql-postgre;" +
-              $"Database=thumbnaildb;Username=appuser;Password={dbPassword}";
-
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connStr));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("CloudSqlPostgres")));
 
 // -------------------------
 // 5️⃣ Multipart upload limit
@@ -56,18 +51,33 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 // -------------------------
-// 6️⃣ KMS Encryption service
+// 6️⃣ KMS Encryption service (AES)
 // -------------------------
 builder.Services.AddSingleton<IEncryptionService>(sp =>
-    new KmsEncryptionService(builder.Configuration["Jwt:KmsKeyName"]));
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var keyBase64 = config["Security:AesKeyBase64"];
+    var ivBase64 = config["Security:AesIvBase64"];
+    if (string.IsNullOrEmpty(keyBase64) || string.IsNullOrEmpty(ivBase64))
+        throw new Exception("Missing AES key/iv in config");
+    var key = Convert.FromBase64String(keyBase64);
+    var iv = Convert.FromBase64String(ivBase64);
+    return new EncryptionService(key, iv);
+});
 
 // -------------------------
-// 7️⃣ Build app
+// 7️⃣ JWT Service with KMS
+// -------------------------
+builder.Services.AddSingleton(KeyManagementServiceClient.Create());
+builder.Services.AddScoped<IJwtService, KmsJwtService>();
+
+// -------------------------
+// 8️⃣ Build app
 // -------------------------
 var app = builder.Build();
 
 // -------------------------
-// 8️⃣ Middleware
+// 9️⃣ Middleware pipeline
 // -------------------------
 if (!app.Environment.IsDevelopment())
 {
@@ -79,11 +89,11 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// JWT Auth Middleware
+// JWT Auth Middleware (requires IJwtService)
 app.UseMiddleware<ThumbnailService.Middleware.JwtAuthMiddleware>();
 
 // -------------------------
-// 9️⃣ Routes
+// 1️⃣0️⃣ Routes
 // -------------------------
 app.MapControllerRoute(
     name: "default",
@@ -97,7 +107,7 @@ app.MapGet("/", context =>
 });
 
 // -------------------------
-// 1️⃣0️⃣ Debug: List Buckets (optional)
+// 1️⃣1️⃣ Optional: Debug list buckets
 // -------------------------
 var credPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
 if (string.IsNullOrWhiteSpace(credPath))
@@ -123,6 +133,6 @@ else
 }
 
 // -------------------------
-// 1️⃣1️⃣ Run app
+// 1️⃣2️⃣ Run app
 // -------------------------
 app.Run();

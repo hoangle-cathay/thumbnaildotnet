@@ -1,8 +1,6 @@
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ThumbnailService.Models;
@@ -42,11 +40,15 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
+            // ✅ Encrypt password async
+            var encryptedPassword = await _encryption.EncryptAsync(password);
+
             var user = new User
             {
                 Email = email,
-                EncryptedPassword = await _encryption.EncryptAsync(password);
+                EncryptedPassword = encryptedPassword
             };
+
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
 
@@ -68,9 +70,10 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
-            var decrypted = await _encryption.DecryptAsync(user.EncryptedPassword);
+            // ✅ Decrypt async
+            var decryptedPassword = await _encryption.DecryptAsync(user.EncryptedPassword);
 
-            if (decrypted != password)
+            if (decryptedPassword != password)
             {
                 ModelState.AddModelError(string.Empty, "Invalid credentials");
                 return View();
@@ -91,5 +94,3 @@ namespace ThumbnailService.Controllers
         public IActionResult AccessDenied() => View();
     }
 }
-
-
