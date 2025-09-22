@@ -40,8 +40,8 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
-            // Encrypt password
-            var encryptedPassword = _encryption.Encrypt(password);
+            // Encrypt password with KMS
+            var encryptedPassword = await _encryption.EncryptAsync(password);
 
             var user = new User
             {
@@ -70,8 +70,8 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
-            // Decrypt password
-            var decryptedPassword = _encryption.Decrypt(user.EncryptedPassword);
+            // Decrypt password with KMS
+            var decryptedPassword = await _encryption.DecryptAsync(user.EncryptedPassword);
 
             if (decryptedPassword != password)
             {

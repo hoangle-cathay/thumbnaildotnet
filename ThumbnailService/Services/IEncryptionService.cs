@@ -2,7 +2,7 @@ namespace ThumbnailService.Services
 {
     public interface IEncryptionService
     {
-        string Encrypt(string plaintext);
-        string Decrypt(string ciphertextBase64);
+        Task<string> EncryptAsync(string plaintext);
+        Task<string> DecryptAsync(string base64Ciphertext);
     }
 }
