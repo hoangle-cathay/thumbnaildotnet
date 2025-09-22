@@ -4,27 +4,22 @@ using System.Text;
 
 namespace ThumbnailService.Services
 {
-    public interface IEncryptionService
-    {
-        string Encrypt(string plaintext);
-        string Decrypt(string ciphertext);
-
-        Task<string> EncryptAsync(string plaintext);
-        Task<string> DecryptAsync(string ciphertext);
-    }
-
-
-    public class EncryptionService : IEncryptionService
+    public class AesEncryptionService : IEncryptionService
     {
         private readonly byte[] _key;
         private readonly byte[] _iv;
 
-        public EncryptionService(byte[] key, byte[] iv)
+        public AesEncryptionService(byte[] key, byte[] iv)
         {
+            if (key == null || key.Length != 32)
+                throw new ArgumentException("AES key must be 32 bytes for AES-256.", nameof(key));
+            if (iv == null || iv.Length != 16)
+                throw new ArgumentException("AES IV must be 16 bytes.", nameof(iv));
+
             _key = key;
             _iv = iv;
+            Console.WriteLine("AesEncryptionService initialized successfully with valid key/IV.");
         }
-
 
         public string Encrypt(string plaintext)
         {
@@ -40,12 +35,6 @@ namespace ThumbnailService.Services
             return Convert.ToBase64String(cipherBytes);
         }
 
-        public Task<string> EncryptAsync(string plaintext)
-        {
-            // Synchronous implementation for compatibility
-            return Task.FromResult(Encrypt(plaintext));
-        }
-
         public string Decrypt(string ciphertextBase64)
         {
             using var aes = Aes.Create();
@@ -59,13 +48,5 @@ namespace ThumbnailService.Services
             var plainBytes = decryptor.TransformFinalBlock(cipherBytes, 0, cipherBytes.Length);
             return Encoding.UTF8.GetString(plainBytes);
         }
-
-        public Task<string> DecryptAsync(string ciphertextBase64)
-        {
-            // Synchronous implementation for compatibility
-            return Task.FromResult(Decrypt(ciphertextBase64));
-        }
     }
 }
-
-
