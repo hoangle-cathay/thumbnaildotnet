@@ -14,11 +14,13 @@ namespace ThumbnailService.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IEncryptionService _encryption;
+        private readonly IJwtService _jwtService;
 
-        public AccountController(AppDbContext db, IEncryptionService encryption)
+        public AccountController(AppDbContext db, IEncryptionService encryption, IJwtService jwtService)
         {
             _db = db;
             _encryption = encryption;
+            _jwtService = jwtService;
         }
 
         [HttpGet]
@@ -43,11 +45,14 @@ namespace ThumbnailService.Controllers
             var user = new User
             {
                 Email = email,
-                EncryptedPassword = _encryption.Encrypt(password)
+                EncryptedPassword = await _encryption.EncryptAsync(password);
             };
             _db.Users.Add(user);
             await _db.SaveChangesAsync();
-            return RedirectToAction("Login");
+
+            // Issue JWT
+            var jwt = await _jwtService.GenerateTokenAsync(user.Id, user.Email);
+            return Json(new { token = jwt });
         }
 
         [HttpGet]
@@ -63,28 +68,24 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
-            var decrypted = _encryption.Decrypt(user.EncryptedPassword);
+            var decrypted = await _encryption.DecryptAsync(user.EncryptedPassword);
+
             if (decrypted != password)
             {
                 ModelState.AddModelError(string.Empty, "Invalid credentials");
                 return View();
             }
 
-            var claims = new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Email)
-            };
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
-            return RedirectToAction("Index", "Home");
+            // Issue JWT
+            var jwt = await _jwtService.GenerateTokenAsync(user.Id, user.Email);
+            return Json(new { token = jwt });
         }
 
         [HttpPost]
-        public async Task<IActionResult> Logout()
+        public IActionResult Logout()
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return RedirectToAction("Login");
+            // For JWT, logout is handled client-side (delete token)
+            return Ok();
         }
 
         public IActionResult AccessDenied() => View();

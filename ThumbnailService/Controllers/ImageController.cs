@@ -8,7 +8,7 @@ using ThumbnailService.Services;
 
 namespace ThumbnailService.Controllers
 {
-    //[Authorize]
+    [Authorize]
     public class ImageController : Controller
     {
         private readonly AppDbContext _db;
@@ -27,7 +27,9 @@ namespace ThumbnailService.Controllers
         [HttpGet]
         public async Task<IActionResult> List()
         {
-            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
             _logger.LogInformation("[List] Fetching images for user {UserId}", userId);
             var images = await _db.ImageUploads.Where(i => i.UserId == userId)
                 .OrderByDescending(i => i.UploadedAtUtc)
@@ -44,8 +46,9 @@ namespace ThumbnailService.Controllers
         [HttpGet]
         public async Task<IActionResult> DownloadThumbnail(Guid id)
         {
-            // For local debugging, use the same hardcoded userId as in List
-            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
             _logger.LogInformation("[DownloadThumbnail] User {UserId} requested thumbnail for image {ImageId}", userId, id);
             var img = await _db.ImageUploads.FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
             if (img == null)

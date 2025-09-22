@@ -6,11 +6,15 @@ using ThumbnailService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MVC
+// -------------------------
+// 1️⃣ MVC
+// -------------------------
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-// Kestrel listen on PORT (Cloud Run)
+// -------------------------
+// 2️⃣ Kestrel listen on PORT (Cloud Run)
+// -------------------------
 var portEnv = Environment.GetEnvironmentVariable("PORT");
 if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 {
@@ -21,28 +25,50 @@ if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
     });
 }
 
-// GCS + Services
+// -------------------------
+// 3️⃣ Google Cloud Services
+// -------------------------
 builder.Services.AddSingleton(provider => StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
-// PubSubService registration
 var pubsubTopic = builder.Configuration.GetValue<string>("Gcp:ThumbnailJobTopic") ?? string.Empty;
 builder.Services.AddSingleton(new PubSubService(pubsubTopic));
 
-// PostgreSQL
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("CloudSqlPostgres")));
+// -------------------------
+// 4️⃣ PostgreSQL + SecretFetcher + KMS
+// -------------------------
+var secretFetcher = new SecretFetcher();
+string dbPassword = await secretFetcher.GetDecryptedPasswordAsync();
 
-// Multipart upload limit (100 MB)
+var connStr = $"Host=/cloudsql/hoangassignment:asia-southeast1:leo-cloudsql-postgre;" +
+              $"Database=thumbnaildb;Username=appuser;Password={dbPassword}";
+
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql(connStr));
+
+// -------------------------
+// 5️⃣ Multipart upload limit
+// -------------------------
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 104857600; 
+    options.MultipartBodyLengthLimit = 104857600; // 100 MB
 });
 
+// -------------------------
+// 6️⃣ KMS Encryption service
+// -------------------------
+builder.Services.AddSingleton<IEncryptionService>(sp =>
+    new KmsEncryptionService(builder.Configuration["Jwt:KmsKeyName"]));
+
+// -------------------------
+// 7️⃣ Build app
+// -------------------------
 var app = builder.Build();
 
-// Middleware
+// -------------------------
+// 8️⃣ Middleware
+// -------------------------
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -53,7 +79,12 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// Routes
+// JWT Auth Middleware
+app.UseMiddleware<ThumbnailService.Middleware.JwtAuthMiddleware>();
+
+// -------------------------
+// 9️⃣ Routes
+// -------------------------
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
@@ -65,7 +96,9 @@ app.MapGet("/", context =>
     return Task.CompletedTask;
 });
 
-// Debug: List buckets
+// -------------------------
+// 1️⃣0️⃣ Debug: List Buckets (optional)
+// -------------------------
 var credPath = Environment.GetEnvironmentVariable("GOOGLE_APPLICATION_CREDENTIALS");
 if (string.IsNullOrWhiteSpace(credPath))
 {
@@ -89,4 +122,7 @@ else
     }
 }
 
+// -------------------------
+// 1️⃣1️⃣ Run app
+// -------------------------
 app.Run();

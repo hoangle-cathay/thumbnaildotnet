@@ -9,7 +9,7 @@ using ThumbnailService.Services;
 
 namespace ThumbnailService.Controllers
 {
-    //[Authorize]
+    [Authorize]
     public class UploadController : Controller
     {
         private readonly AppDbContext _db;
@@ -51,8 +51,12 @@ namespace ThumbnailService.Controllers
                 return View("Index");
             }
 
-            //var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
-            var userId = Guid.Parse("11111111-1111-1111-1111-111111111111"); // For local debugging
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+            {
+                ModelState.AddModelError(string.Empty, "User not authenticated");
+                return View("Index");
+            }
             var originalObjectName = $"originals/{userId}/{Guid.NewGuid()}_{file.FileName}";
             await using var stream = file.OpenReadStream();
             await _storage.UploadAsync(_originalsBucket, originalObjectName, stream, contentType);
