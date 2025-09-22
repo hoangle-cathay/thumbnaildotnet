@@ -37,34 +37,9 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 104857600;
 });
 
-// 6️⃣ AES Key/IV loading
-byte[] aesKey = null;
-byte[] aesIv = null;
 
-// Env variables fallback
-var keyBase64 = Environment.GetEnvironmentVariable("AES_KEY");
-var ivBase64 = Environment.GetEnvironmentVariable("AES_IV");
-if (!string.IsNullOrEmpty(keyBase64) && !string.IsNullOrEmpty(ivBase64))
-{
-    aesKey = Convert.FromBase64String(keyBase64);
-    aesIv = Convert.FromBase64String(ivBase64);
-    Console.WriteLine("AES key/IV loaded from environment variables.");
-}
-else
-{
-    // Secret Manager + KMS fallback
-    var config = builder.Configuration;
-    var projectId = config["Gcp:ProjectId"];
-    var secretId = config["Gcp:AesSecretId"];
-    var kmsKeyResource = config["Gcp:KmsKeyResource"];
-    if (string.IsNullOrEmpty(projectId) || string.IsNullOrEmpty(secretId) || string.IsNullOrEmpty(kmsKeyResource))
-        throw new Exception("Missing GCP config for Secret Manager/KMS AES key/IV retrieval.");
-
-    (aesKey, aesIv) = SecretManagerKmsHelper.GetAesKeyAndIvFromSecretManager(projectId, secretId, kmsKeyResource);
-    Console.WriteLine("AES key/IV loaded from Secret Manager + KMS.");
-}
-
-builder.Services.AddSingleton<IEncryptionService>(new AesEncryptionService(aesKey, aesIv));
+// 6️⃣ No AES key/IV: Use direct KMS encryption/decryption via SecretManagerKmsHelper
+// Remove AesEncryptionService and related DI registration.
 
 // 7️⃣ JWT Service
 builder.Services.AddSingleton(KeyManagementServiceClient.Create());
