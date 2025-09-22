@@ -1,3 +1,4 @@
+using ThumbnailService.Services;
 using Google.Cloud.Kms.V1;
 using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http.Features;
@@ -27,9 +28,29 @@ builder.Services.AddSingleton(StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
-// 4️⃣ PostgreSQL
+// 4️⃣ PostgreSQL (Cloud SQL)
+// Detect môi trường
+var isDevelopment = builder.Environment.IsDevelopment();
+
+string connectionString;
+
+if (isDevelopment)
+{
+    // Dùng config local
+    connectionString = builder.Configuration.GetConnectionString("CloudSqlPostgres");
+}
+else
+{
+    // Prod: fetch secret bằng SecretFetcher
+    var fetcher = new ThumbnailService.Services.SecretFetcher();
+    var dbPassword = fetcher.GetDecryptedPassword();
+
+    connectionString = builder.Configuration.GetConnectionString("CloudSqlPostgres")
+        .Replace("{PLACEHOLDER}", dbPassword);
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("CloudSqlPostgres")));
+    options.UseNpgsql(connectionString));
 
 // 5️⃣ Multipart upload limit
 builder.Services.Configure<FormOptions>(options =>
@@ -37,18 +58,24 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 104857600;
 });
 
-
-// 6️⃣ No AES key/IV: Use direct KMS encryption/decryption via SecretManagerKmsHelper
-// Remove AesEncryptionService and related DI registration.
-
-// 7️⃣ JWT Service
+// 6️⃣ KMS Encryption Service
 builder.Services.AddSingleton(KeyManagementServiceClient.Create());
+builder.Services.AddScoped<IEncryptionService, KmsEncryptionService>();
+
+// 7️⃣ JWT Service (signed/verified via KMS)
 builder.Services.AddScoped<IJwtService, KmsJwtService>();
 
-// 8️⃣ Build app
+// 8️⃣ Logging
+builder.Services.AddLogging(logging =>
+{
+    logging.ClearProviders();
+    logging.AddConsole();
+});
+
+// 9️⃣ Build app
 var app = builder.Build();
 
-// 9️⃣ Middleware
+// 🔟 Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -60,7 +87,7 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseMiddleware<ThumbnailService.Middleware.JwtAuthMiddleware>();
 
-// 10️⃣ Routes
+// 1️⃣1️⃣ Routes
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
