@@ -42,11 +42,14 @@ if (isDevelopment)
 else
 {
     // Prod: fetch secret bằng SecretFetcher
-    var fetcher = new ThumbnailService.Services.SecretFetcher();
-    var dbPassword = fetcher.GetDecryptedPassword();
-
-    connectionString = builder.Configuration.GetConnectionString("CloudSqlPostgres")
-        .Replace("{PLACEHOLDER}", dbPassword);
+    using (var scope = builder.Services.BuildServiceProvider().CreateScope())
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailService.Services.SecretFetcher>>();
+        var fetcher = new ThumbnailService.Services.SecretFetcher(logger);
+        var dbPassword = fetcher.GetDecryptedPassword();
+        connectionString = builder.Configuration.GetConnectionString("CloudSqlPostgres")
+            .Replace("{PLACEHOLDER}", dbPassword);
+    }
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -63,7 +66,6 @@ builder.Services.AddSingleton(KeyManagementServiceClient.Create());
 builder.Services.AddScoped<IEncryptionService, KmsEncryptionService>();
 
 // 7️⃣ JWT Service (signed/verified via KMS)
-builder.Services.AddScoped<IJwtService, KmsJwtService>();
 
 // 8️⃣ Logging
 builder.Services.AddLogging(logging =>
@@ -85,7 +87,6 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseMiddleware<ThumbnailService.Middleware.JwtAuthMiddleware>();
 
 // 1️⃣1️⃣ Routes
 app.MapControllerRoute(

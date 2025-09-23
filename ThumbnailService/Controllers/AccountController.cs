@@ -12,18 +12,15 @@ namespace ThumbnailService.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IEncryptionService _encryption;
-        private readonly IJwtService _jwtService;
         private readonly ILogger<AccountController> _logger;
 
         public AccountController(
             AppDbContext db, 
             IEncryptionService encryption, 
-            IJwtService jwtService,
             ILogger<AccountController> logger)
         {
             _db = db;
             _encryption = encryption;
-            _jwtService = jwtService;
             _logger = logger;
         }
 
@@ -102,23 +99,9 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
-            // Issue JWT
-            var jwt = await _jwtService.GenerateTokenAsync(user.Id, user.Email);
-
-            // 👉 Option 1: Return JSON (API style)
-            // return Json(new { token = jwt });
-
-            // 👉 Option 2: Set JWT as HttpOnly Cookie (MVC style)
-            Response.Cookies.Append("AuthToken", jwt, new Microsoft.AspNetCore.Http.CookieOptions
-            {
-                HttpOnly = true,
-                Secure = true, // chỉ gửi qua HTTPS
-                SameSite = Microsoft.AspNetCore.Http.SameSiteMode.Strict,
-                Expires = DateTime.UtcNow.AddHours(1)
-            });
-
+            // Set a dummy cookie or implement your new cookie-based auth here
+            // For now, just log in and redirect
             _logger.LogInformation("User {Email} logged in successfully", email);
-
             return RedirectToAction("Index", "Home");
         }
 
