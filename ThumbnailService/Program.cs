@@ -39,8 +39,7 @@ builder.Services.AddLogging(logging =>
     logging.AddConsole();
 });
 
-// 6️⃣ PostgreSQL (Cloud SQL)
-// DbContext factory, fetch secret at runtime
+// 6️⃣ PostgreSQL (Cloud SQL) with SecretFetcher
 builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 {
     var env = builder.Environment;
@@ -53,11 +52,13 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     }
     else
     {
-        var logger = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SecretFetcher>>();
+        // Production: fetch decrypted password from SecretFetcher
         var fetcher = serviceProvider.GetRequiredService<SecretFetcher>();
-        var dbPassword = fetcher.GetDecryptedPassword();
+        var dbPassword = fetcher.GetDecryptedPassword();  // <-- logs here will appear in Log Explorer
+        var logger = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SecretFetcher>>();
         logger.LogInformation("Fetched decrypted DB password for Cloud SQL.");
 
+        // Replace placeholder with actual password
         finalConnectionString = connectionStringTemplate.Replace("{PLACEHOLDER}", dbPassword);
     }
 
@@ -67,10 +68,10 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 // 7️⃣ Multipart upload limit
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 104857600;
+    options.MultipartBodyLengthLimit = 104857600; // 100 MB
 });
 
-// 8️⃣ JWT Service & Middleware can be added here
+// 8️⃣ JWT Service & Middleware (if any)
 // builder.Services.AddScoped<IJwtService, JwtService>();
 
 var app = builder.Build();
@@ -91,6 +92,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
+
 app.MapGet("/", context =>
 {
     context.Response.Redirect("/Home/Index");
