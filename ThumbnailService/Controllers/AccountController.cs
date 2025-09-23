@@ -49,9 +49,11 @@ namespace ThumbnailService.Controllers
                 return View();
             }
             
+
+            bool exists = false;
             try
             {
-                var exists = await _db.Users.AnyAsync(u => u.Email == email);
+                exists = await _db.Users.AnyAsync(u => u.Email == email);
             }
             catch (Exception ex)
             {
