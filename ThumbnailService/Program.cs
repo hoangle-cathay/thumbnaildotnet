@@ -4,7 +4,6 @@ using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
 using ThumbnailService.Models;
-using ThumbnailService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,56 +27,55 @@ builder.Services.AddSingleton(StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 
-// 4️⃣ PostgreSQL (Cloud SQL)
-// Detect môi trường
-var isDevelopment = builder.Environment.IsDevelopment();
-
-string connectionString;
-
-if (isDevelopment)
-{
-    // Dùng config local
-    connectionString = builder.Configuration.GetConnectionString("CloudSqlPostgres");
-}
-else
-{
-    // Prod: fetch secret bằng SecretFetcher
-    using (var scope = builder.Services.BuildServiceProvider().CreateScope())
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<ThumbnailService.Services.SecretFetcher>>();
-        var fetcher = new ThumbnailService.Services.SecretFetcher(logger);
-        var dbPassword = fetcher.GetDecryptedPassword();
-        connectionString = builder.Configuration.GetConnectionString("CloudSqlPostgres")
-            .Replace("{PLACEHOLDER}", dbPassword);
-    }
-}
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-// 5️⃣ Multipart upload limit
-builder.Services.Configure<FormOptions>(options =>
-{
-    options.MultipartBodyLengthLimit = 104857600;
-});
-
-// 6️⃣ KMS Encryption Service
+// 4️⃣ SecretFetcher & KMS
+builder.Services.AddSingleton<SecretFetcher>();
 builder.Services.AddSingleton(KeyManagementServiceClient.Create());
 builder.Services.AddScoped<IEncryptionService, KmsEncryptionService>();
 
-// 7️⃣ JWT Service (signed/verified via KMS)
-
-// 8️⃣ Logging
+// 5️⃣ Logging
 builder.Services.AddLogging(logging =>
 {
     logging.ClearProviders();
     logging.AddConsole();
 });
 
-// 9️⃣ Build app
+// 6️⃣ PostgreSQL (Cloud SQL)
+// DbContext factory, fetch secret at runtime
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
+{
+    var env = builder.Environment;
+    string connectionStringTemplate = builder.Configuration.GetConnectionString("CloudSqlPostgres");
+    string finalConnectionString;
+
+    if (env.IsDevelopment())
+    {
+        finalConnectionString = connectionStringTemplate;
+    }
+    else
+    {
+        var logger = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SecretFetcher>>();
+        var fetcher = serviceProvider.GetRequiredService<SecretFetcher>();
+        var dbPassword = fetcher.GetDecryptedPassword();
+        logger.LogInformation("Fetched decrypted DB password for Cloud SQL.");
+
+        finalConnectionString = connectionStringTemplate.Replace("{PLACEHOLDER}", dbPassword);
+    }
+
+    options.UseNpgsql(finalConnectionString);
+});
+
+// 7️⃣ Multipart upload limit
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 104857600;
+});
+
+// 8️⃣ JWT Service & Middleware can be added here
+// builder.Services.AddScoped<IJwtService, JwtService>();
+
 var app = builder.Build();
 
-// 🔟 Middleware
+// 9️⃣ Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

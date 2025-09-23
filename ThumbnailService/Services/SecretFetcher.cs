@@ -5,7 +5,6 @@ using System;
 
 namespace ThumbnailService.Services
 {
-
     public class SecretFetcher
     {
         private readonly SecretManagerServiceClient _secretClient;
@@ -19,34 +18,46 @@ namespace ThumbnailService.Services
             _logger = logger;
         }
 
-        public string GetDecryptedPassword()
+        public string GetDecryptedPassword(bool logPlaintext = false)
         {
-            _logger.LogInformation("1. Fetching encrypted DB password (Base64 ciphertext) from Secret Manager...");
-            var secretName = new SecretVersionName("hoangassignment", "db-password-enc", "latest");
-            var secret = _secretClient.AccessSecretVersion(secretName);
-
-            byte[] cipherBytes;
-
             try
             {
-                // Case 1: Secret payload là raw binary (đúng chuẩn khi add từ file)
-                cipherBytes = secret.Payload.Data.ToByteArray();
-                _logger.LogInformation("2. Fetched secret as raw binary.");
+                _logger.LogInformation("Fetching encrypted DB password from Secret Manager...");
+                var secretName = new SecretVersionName("hoangassignment", "db-password-enc", "latest");
+                var secret = _secretClient.AccessSecretVersion(secretName);
+
+                byte[] cipherBytes;
+                try
+                {
+                    cipherBytes = secret.Payload.Data.ToByteArray();
+                    _logger.LogInformation($"Fetched secret as raw binary ({cipherBytes.Length} bytes).");
+                }
+                catch
+                {
+                    string base64Cipher = secret.Payload.Data.ToStringUtf8();
+                    _logger.LogInformation($"Fetched secret as base64 string ({base64Cipher.Length} chars), decoding...");
+                    cipherBytes = Convert.FromBase64String(base64Cipher);
+                }
+
+                _logger.LogInformation("Calling KMS to decrypt DB password...");
+                var keyName = new CryptoKeyName("hoangassignment", "asia-southeast1", "thumbnail-keyring", "thumbnail-key");
+                var decryptResponse = _kmsClient.Decrypt(keyName, ByteString.CopyFrom(cipherBytes));
+
+                var plaintext = decryptResponse.Plaintext.ToStringUtf8();
+                _logger.LogInformation($"Decryption complete. Ciphertext length: {cipherBytes.Length}, Plaintext length: {plaintext.Length}.");
+
+                if (logPlaintext)
+                {
+                    _logger.LogWarning($"Decrypted DB password (debug only): {plaintext}");
+                }
+
+                return plaintext;
             }
-            catch
+            catch (Exception ex)
             {
-                // Case 2: Nếu payload là string base64 (lỡ upload nhầm)
-                string base64Cipher = secret.Payload.Data.ToStringUtf8();
-                _logger.LogInformation("Fetched secret as base64 string, decoding...");
-                cipherBytes = Convert.FromBase64String(base64Cipher);
+                _logger.LogError(ex, "Failed to fetch/decrypt DB password from Secret Manager or KMS.");
+                throw;
             }
-
-            _logger.LogInformation("3. Calling KMS to decrypt DB password...");
-            var keyName = new CryptoKeyName("hoangassignment", "asia-southeast1", "thumbnail-keyring", "thumbnail-key");
-            var decryptResponse = _kmsClient.Decrypt(keyName, ByteString.CopyFrom(cipherBytes));
-
-            _logger.LogInformation("4. Decryption complete. Returning plaintext password.");
-            return decryptResponse.Plaintext.ToStringUtf8();
         }
     }
 }
