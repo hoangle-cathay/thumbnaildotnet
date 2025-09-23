@@ -28,7 +28,10 @@ builder.Services.AddSingleton(StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
 // Add PubSubService registration
-builder.Services.AddScoped<PubSubService>();
+builder.Services.AddSingleton(sp => new PubSubService(
+    "projects/hoangassignment/topics/thumbnail-trigger"
+));
+
 
 // 4️⃣ SecretFetcher & KMS
 builder.Services.AddSingleton<SecretFetcher>();
