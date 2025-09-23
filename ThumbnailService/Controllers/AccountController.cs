@@ -6,8 +6,14 @@ using Microsoft.Extensions.Logging;
 using ThumbnailService.Models;
 using ThumbnailService.Services;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
+
 namespace ThumbnailService.Controllers
 {
+    [Authorize]
     public class AccountController : Controller
     {
         private readonly AppDbContext _db;
@@ -27,11 +33,13 @@ namespace ThumbnailService.Controllers
         // ---------------------------
         // Register
         // ---------------------------
-        [HttpGet]
-        public IActionResult Register() => View();
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult Register() => View();
 
-        [HttpPost]
-        public async Task<IActionResult> Register(string email, string password)
+    [HttpPost]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register(string email, string password)
         {
             _logger.LogInformation("Registration attempt for email: {Email}", email);
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -83,11 +91,13 @@ namespace ThumbnailService.Controllers
         // ---------------------------
         // Login
         // ---------------------------
-        [HttpGet]
-        public IActionResult Login() => View();
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult Login() => View();
 
-        [HttpPost]
-        public async Task<IActionResult> Login(string email, string password)
+    [HttpPost]
+    [AllowAnonymous]
+    public async Task<IActionResult> Login(string email, string password)
         {
             _logger.LogInformation("Login attempt for email: {Email}", email);
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -108,8 +118,15 @@ namespace ThumbnailService.Controllers
                 return View();
             }
 
-            // Set a dummy cookie or implement your new cookie-based auth here
-            // For now, just log in and redirect
+            // Sign in with cookie auth
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Email)
+            };
+            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var principal = new ClaimsPrincipal(identity);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal);
             _logger.LogInformation("User {Email} logged in successfully (Id: {UserId})", email, user.Id);
             return RedirectToAction("Index", "Home");
         }
@@ -118,13 +135,14 @@ namespace ThumbnailService.Controllers
         // Logout
         // ---------------------------
         [HttpPost]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
             _logger.LogInformation("User logged out");
-            Response.Cookies.Delete("AuthToken");
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return RedirectToAction("Login");
         }
 
-        public IActionResult AccessDenied() => View();
+    [AllowAnonymous]
+    public IActionResult AccessDenied() => View();
     }
 }

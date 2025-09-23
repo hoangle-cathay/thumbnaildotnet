@@ -3,6 +3,7 @@ using Google.Cloud.Kms.V1;
 using Google.Cloud.Storage.V1;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using ThumbnailService.Models;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,7 +13,7 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 // 2️⃣ Kestrel port config (Cloud Run)
-var portEnv = Environment.GetEnvironmentVariable("PORT");
+var portEnv = Environment.GetEnvironmentVariable("PORT") ?? "5001";
 if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 {
     builder.WebHost.ConfigureKestrel(options =>
@@ -52,13 +53,8 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     }
     else
     {
-        // Production: fetch decrypted password from SecretFetcher
         var fetcher = serviceProvider.GetRequiredService<SecretFetcher>();
-        var dbPassword = fetcher.GetDecryptedPassword();  // <-- logs here will appear in Log Explorer
-        var logger = serviceProvider.GetRequiredService<Microsoft.Extensions.Logging.ILogger<SecretFetcher>>();
-        logger.LogInformation("Fetched decrypted DB password for Cloud SQL.");
-
-        // Replace placeholder with actual password
+        var dbPassword = fetcher.GetDecryptedPassword();
         finalConnectionString = connectionStringTemplate.Replace("{PLACEHOLDER}", dbPassword);
     }
 
@@ -71,12 +67,25 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = 104857600; // 100 MB
 });
 
-// 8️⃣ JWT Service & Middleware (if any)
-// builder.Services.AddScoped<IJwtService, JwtService>();
+// 8️⃣ Cookie Authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(1);
+        options.SlidingExpiration = true;
+    });
 
+// 9️⃣ Build app
 var app = builder.Build();
 
-// 9️⃣ Middleware
+// 🔟 Log app startup
+var startupLogger = app.Services.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Program>>();
+startupLogger.LogInformation("ThumbnailService app started. Environment: {Env}", app.Environment.EnvironmentName);
+
+// 1️⃣1️⃣ Middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -87,7 +96,11 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 
-// 1️⃣1️⃣ Routes
+// ✅ Authentication & Authorization must be here
+app.UseAuthentication();
+app.UseAuthorization();
+
+// 1️⃣2️⃣ Routes
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
