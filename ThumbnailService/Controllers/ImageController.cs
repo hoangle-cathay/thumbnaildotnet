@@ -13,8 +13,8 @@ namespace ThumbnailService.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IStorageService _storage;
-    private readonly string _thumbnailsBucket;
-    private readonly ILogger<ImageController> _logger;
+        private readonly string _thumbnailsBucket;
+        private readonly ILogger<ImageController> _logger;
 
         public ImageController(AppDbContext db, IStorageService storage, IConfiguration config, ILogger<ImageController> logger)
         {

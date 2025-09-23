@@ -14,13 +14,13 @@ namespace ThumbnailService.Controllers
     {
         private readonly AppDbContext _db;
         private readonly IStorageService _storage;
-    private readonly IThumbnailService _thumbnail;
-    private readonly PubSubService _pubSub;
+        private readonly IThumbnailService _thumbnail;
+        private readonly PubSubService _pubSub;
 
         private readonly string _originalsBucket;
         private readonly string _thumbnailsBucket;
 
-    public UploadController(AppDbContext db, IStorageService storage, IThumbnailService thumbnail, PubSubService pubSub, IConfiguration config)
+        public UploadController(AppDbContext db, IStorageService storage, IThumbnailService thumbnail, PubSubService pubSub, IConfiguration config)
         {
             _db = db;
             _storage = storage;

@@ -27,6 +27,8 @@ if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
 builder.Services.AddSingleton(StorageClient.Create());
 builder.Services.AddSingleton<IStorageService, GoogleStorageService>();
 builder.Services.AddSingleton<IThumbnailService, ThumbnailServiceImpl>();
+// Add PubSubService registration
+builder.Services.AddScoped<PubSubService>();
 
 // 4️⃣ SecretFetcher & KMS
 builder.Services.AddSingleton<SecretFetcher>();
