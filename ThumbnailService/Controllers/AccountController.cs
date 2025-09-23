@@ -33,13 +33,13 @@ namespace ThumbnailService.Controllers
         // ---------------------------
         // Register
         // ---------------------------
-    [HttpGet]
-    [AllowAnonymous]
-    public IActionResult Register() => View();
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Register() => View();
 
-    [HttpPost]
-    [AllowAnonymous]
-    public async Task<IActionResult> Register(string email, string password)
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> Register(string email, string password)
         {
             _logger.LogInformation("Registration attempt for email: {Email}", email);
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
@@ -48,8 +48,16 @@ namespace ThumbnailService.Controllers
                 ModelState.AddModelError(string.Empty, "Email and password required");
                 return View();
             }
+            
+            try
+            {
+                var exists = await _db.Users.AnyAsync(u => u.Email == email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Fail to connect to DB.");
+            }
 
-            var exists = await _db.Users.AnyAsync(u => u.Email == email);
             if (exists)
             {
                 _logger.LogWarning("Registration failed: email {Email} already registered", email);
@@ -91,13 +99,13 @@ namespace ThumbnailService.Controllers
         // ---------------------------
         // Login
         // ---------------------------
-    [HttpGet]
-    [AllowAnonymous]
-    public IActionResult Login() => View();
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult Login() => View();
 
-    [HttpPost]
-    [AllowAnonymous]
-    public async Task<IActionResult> Login(string email, string password)
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<IActionResult> Login(string email, string password)
         {
             _logger.LogInformation("Login attempt for email: {Email}", email);
             var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -142,7 +150,7 @@ namespace ThumbnailService.Controllers
             return RedirectToAction("Login");
         }
 
-    [AllowAnonymous]
-    public IActionResult AccessDenied() => View();
+        [AllowAnonymous]
+        public IActionResult AccessDenied() => View();
     }
 }
