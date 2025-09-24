@@ -1,3 +1,4 @@
+      
 using System;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +31,15 @@ namespace ThumbnailService.Controllers
             _logger = logger;
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("/account/healthcheck")]
+        public async Task<IActionResult> HealthCheck()
+        {
+            var count = await _db.Users.CountAsync();
+            return Ok(new { status = "ok", userCount = count });
+        }
+
         // ---------------------------
         // Register
         // ---------------------------
@@ -57,7 +67,7 @@ namespace ThumbnailService.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Fail to connect to DB.");
+                _logger.LogError("Fail to connect to DB: {Message}", ex.Message);
             }
 
             if (exists)
