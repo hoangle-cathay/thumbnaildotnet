@@ -1,0 +1,81 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/urls: '["https://thumbnailservice-164752717606.asia-southeast1.run.app","https://thumbnailservice-azu74olnbq-as.a.run.app"]'
+  labels:
+    cloud.googleapis.com/location: asia-southeast1
+    run.googleapis.com/satisfiesPzs: 'true'
+  name: thumbnailservice
+  namespace: '164752717606'
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '20'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 539.0.0
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        client.knative.dev/nonce: xoqtewfgma
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 80
+      containers:
+      - env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: development
+        - name: Security:AesKeyBase64
+          value: +DEWV0BVxAvqGzu0bi809fjksk/hAkBNXEhVFesk2ws=
+        - name: Security:AesIvBase64
+          value: dxBRCgVz/ZB4yF3aCetrkw==
+        - name: DB_PASSWORD_SECRET
+          value: db-password-enc
+        image: asia-southeast1-docker.pkg.dev/hoangassignment/cloud-run-source-deploy/thumbnaildotnet:2.0
+        name: thumbnaildotnet-1
+        ports:
+        - containerPort: 8080
+          name: http1
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 512Mi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 8080
+          timeoutSeconds: 240
+        volumeMounts:
+        - mountPath: /secrets/sql/ca.pem
+          name: sql-secrets
+        - mountPath: /secrets/sql/client-cert.pem
+          name: client-cert-pem
+        - mountPath: /secrets/sql/client-key.pem
+          name: client-key-pem
+      serviceAccountName: thumbnail-service-account@hoangassignment.iam.gserviceaccount.com
+      timeoutSeconds: 300
+      volumes:
+      - name: sql-secrets
+        secret:
+          items:
+          - key: latest
+            path: secrets/sql
+          secretName: ca-pem
+      - name: client-cert-pem
+        secret:
+          items:
+          - key: latest
+            path: secrets/sql
+          secretName: client-cert-pem
+      - name: client-key-pem
+        secret:
+          items:
+          - key: latest
+            path: secrets/sql
+          secretName: client-key-pem
+  traffic:
+  - latestRevision: true
+    percent: 100
