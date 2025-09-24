@@ -20,7 +20,17 @@ Minimal ASP.NET Core MVC app for image upload to GCS, 100x100 thumbnailing, list
 
 ## Cloud Run
 - Build image: `gcloud builds submit --tag gcr.io/PROJECT/thumbnailservice`
+`gcloud builds submit --tag asia-southeast1-docker.pkg.dev/hoangassignment/cloud-run-source-deploy/thumbnaildotnet:2.1`
 - Deploy: `gcloud run deploy thumbnailservice --image gcr.io/PROJECT/thumbnailservice --region REGION`
+`gcloud run deploy thumbnailservice \
+  --image asia-southeast1-docker.pkg.dev/hoangassignment/cloud-run-source-deploy/thumbnaildotnet:2.1 \
+  --region asia-southeast1 \
+  --platform managed \
+  --vpc-connector=connector-sql \
+  --vpc-egress=all-traffic \
+  --service-account=thumbnail-service-account@hoangassignment.iam.gserviceaccount.com \
+  --set-env-vars DOTNET_ENVIRONMENT=Production \
+  --allow-unauthenticated`
 
 ## Scheduler + Eventarc
 - Endpoint: `POST /jobs/compress`
