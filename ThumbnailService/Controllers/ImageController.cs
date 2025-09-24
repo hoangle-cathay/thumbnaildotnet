@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using ThumbnailService.Models;
 using ThumbnailService.Services;
 
@@ -14,6 +17,7 @@ namespace ThumbnailService.Controllers
         private readonly AppDbContext _db;
         private readonly IStorageService _storage;
         private readonly string _thumbnailsBucket;
+        private readonly string _originalsBucket;
         private readonly ILogger<ImageController> _logger;
 
         public ImageController(AppDbContext db, IStorageService storage, IConfiguration config, ILogger<ImageController> logger)
@@ -21,6 +25,7 @@ namespace ThumbnailService.Controllers
             _db = db;
             _storage = storage;
             _thumbnailsBucket = config.GetValue<string>("Gcp:ThumbnailsBucket") ?? string.Empty;
+            _originalsBucket = config.GetValue<string>("Gcp:OriginalsBucket") ?? string.Empty;
             _logger = logger;
         }
 
@@ -30,16 +35,20 @@ namespace ThumbnailService.Controllers
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId))
                 return Unauthorized();
+
             _logger.LogInformation("[List] Fetching images for user {UserId}", userId);
-            var images = await _db.ImageUploads.Where(i => i.UserId == userId)
+            var images = await _db.ImageUploads
+                .Where(i => i.UserId == userId)
                 .OrderByDescending(i => i.UploadedAtUtc)
                 .ToListAsync();
+
             _logger.LogInformation("[List] Found {Count} images for user {UserId}", images.Count, userId);
             foreach (var img in images)
             {
                 _logger.LogDebug("[List] Image: Id={Id}, File={File}, Thumb={Thumb}, Status={Status}, Uploaded={Uploaded}",
                     img.Id, img.OriginalFileName, img.ThumbnailGcsPath, img.ThumbnailStatus, img.UploadedAtUtc);
             }
+
             return View(images);
         }
 
@@ -49,6 +58,7 @@ namespace ThumbnailService.Controllers
             var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (!Guid.TryParse(userIdStr, out var userId))
                 return Unauthorized();
+
             _logger.LogInformation("[DownloadThumbnail] User {UserId} requested thumbnail for image {ImageId}", userId, id);
             var img = await _db.ImageUploads.FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
             if (img == null)
@@ -58,14 +68,41 @@ namespace ThumbnailService.Controllers
             }
             if (string.IsNullOrEmpty(img.ThumbnailGcsPath))
             {
-                _logger.LogWarning("[DownloadThumbnail] Image {ImageId} for User {UserId} has no thumbnail path", id, userId);
+                _logger.LogWarning("[DownloadThumbnail] Image {ImageId} has no thumbnail path", id);
                 return NotFound();
             }
+
             var url = _storage.GetPublicUrl(_thumbnailsBucket, img.ThumbnailGcsPath);
             _logger.LogInformation("[DownloadThumbnail] Redirecting to thumbnail URL: {Url}", url);
             return Redirect(url);
         }
-        
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadOriginal(Guid id)
+        {
+            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (!Guid.TryParse(userIdStr, out var userId))
+                return Unauthorized();
+
+            _logger.LogInformation("[DownloadOriginal] User {UserId} requested original for image {ImageId}", userId, id);
+            var img = await _db.ImageUploads.FirstOrDefaultAsync(i => i.Id == id && i.UserId == userId);
+            if (img == null)
+            {
+                _logger.LogWarning("[DownloadOriginal] No image found for Id={ImageId} and UserId={UserId}", id, userId);
+                return NotFound();
+            }
+            if (string.IsNullOrEmpty(img.OriginalGcsPath))
+            {
+                _logger.LogWarning("[DownloadOriginal] Image {ImageId} has no original path", id);
+                return NotFound();
+            }
+
+            var url = _storage.GetPublicUrl(_originalsBucket, img.OriginalGcsPath);
+            _logger.LogInformation("[DownloadOriginal] Redirecting to original URL: {Url}", url);
+            return Redirect(url);
+        }
+
+        // For testing/demo purposes
         public static List<ImageUpload> GetDummyImages(Guid userId)
         {
             return new List<ImageUpload>
@@ -110,5 +147,3 @@ namespace ThumbnailService.Controllers
         }
     }
 }
-
-

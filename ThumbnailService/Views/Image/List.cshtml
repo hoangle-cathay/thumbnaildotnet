@@ -9,11 +9,13 @@
 }
 <a class="btn btn-success mb-3" href="/Upload">Upload New</a>
 
+
 @inject ThumbnailService.Services.IStorageService StorageService
 @inject Microsoft.Extensions.Configuration.IConfiguration Config
 
 @{
     var thumbBucket = Config["Gcp:ThumbnailsBucket"] ?? "";
+    var origBucket = Config["Gcp:OriginalsBucket"] ?? "";
 }
 
 <table class="table table-striped">
@@ -47,9 +49,18 @@
             <td>@i.UploadedAtUtc.ToString("u")</td>
             <td>@i.ThumbnailStatus</td>
             <td>
+                <!-- View Original -->
+                @if (!string.IsNullOrEmpty(i.OriginalGcsPath))
+                {
+                    var origUrl = StorageService.GetPublicUrl(origBucket, i.OriginalGcsPath);
+                    <a class="btn btn-outline-secondary btn-sm mb-1" href="@origUrl" target="_blank">View Original</a>
+                    <a class="btn btn-success btn-sm mb-1" href="/Image/DownloadOriginal/@i.Id">Download Original</a>
+                }
+                <br />
+                <!-- Download Thumbnail -->
                 @if (i.ThumbnailStatus == ThumbnailService.Models.ThumbnailStatus.Completed)
                 {
-                    <a class="btn btn-primary btn-sm" href="/Image/DownloadThumbnail/@i.Id">Download Thumbnail</a>
+                    <a class="btn btn-primary btn-sm mt-1" href="/Image/DownloadThumbnail/@i.Id">Download Thumbnail</a>
                 }
             </td>
         </tr>
