@@ -1,7 +1,6 @@
 using Google.Cloud.SecretManager.V1;
 using Google.Cloud.Kms.V1;
 using Google.Protobuf;
-using System;
 
 namespace ThumbnailService.Services
 {
@@ -9,9 +8,9 @@ namespace ThumbnailService.Services
     {
         private readonly SecretManagerServiceClient _secretClient;
         private readonly KeyManagementServiceClient _kmsClient;
-        private readonly Microsoft.Extensions.Logging.ILogger<SecretFetcher> _logger;
+        private readonly ILogger<SecretFetcher> _logger;
 
-        public SecretFetcher(Microsoft.Extensions.Logging.ILogger<SecretFetcher> logger)
+        public SecretFetcher(ILogger<SecretFetcher> logger)
         {
             _secretClient = SecretManagerServiceClient.Create();
             _kmsClient = KeyManagementServiceClient.Create();
