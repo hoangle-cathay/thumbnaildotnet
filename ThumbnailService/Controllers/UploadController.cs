@@ -9,29 +9,28 @@ using ThumbnailService.Services;
 
 namespace ThumbnailService.Controllers
 {
+    [ApiController]
+    [Route("api/[controller]")]
     [Authorize]
-    public class UploadController : Controller
+    public class UploadController : ControllerBase
     {
         private readonly AppDbContext _db;
         private readonly IStorageService _storage;
         private readonly IThumbnailService _thumbnail;
-        private readonly PubSubService _pubSub;
+        private readonly ILogger<UploadController> _logger;
 
         private readonly string _originalsBucket;
         private readonly string _thumbnailsBucket;
 
-        public UploadController(AppDbContext db, IStorageService storage, IThumbnailService thumbnail, PubSubService pubSub, IConfiguration config)
+        public UploadController(AppDbContext db, IStorageService storage, IThumbnailService thumbnail, IConfiguration config, ILogger<UploadController> logger)
         {
             _db = db;
             _storage = storage;
             _thumbnail = thumbnail;
+            _logger = logger;
             _originalsBucket = config.GetValue<string>("Gcp:OriginalsBucket") ?? string.Empty;
             _thumbnailsBucket = config.GetValue<string>("Gcp:ThumbnailsBucket") ?? string.Empty;
-            _pubSub = pubSub;
         }
-
-        [HttpGet]
-        public IActionResult Index() => View();
 
         [HttpPost]
         [RequestSizeLimit(10_000_000)]
@@ -39,25 +38,19 @@ namespace ThumbnailService.Controllers
         {
             if (Request.Form.Files.Count == 0)
             {
-                ModelState.AddModelError(string.Empty, "No file uploaded");
-                return View("Index");
+                return BadRequest(new { error = "No file uploaded" });
             }
 
             var file = Request.Form.Files[0];
             var contentType = file.ContentType.ToLowerInvariant();
             if (contentType != "image/png" && contentType != "image/jpeg")
             {
-                ModelState.AddModelError(string.Empty, "Only PNG or JPG allowed");
-                return View("Index");
+                return BadRequest(new { error = "Only PNG or JPG allowed" });
             }
 
-            var userIdStr = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (!Guid.TryParse(userIdStr, out var userId))
-            {
-                ModelState.AddModelError(string.Empty, "User not authenticated");
-                return View("Index");
-            }
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
             var originalObjectName = $"originals/{userId}/{Guid.NewGuid()}_{file.FileName}";
+
             await using var stream = file.OpenReadStream();
             await _storage.UploadAsync(_originalsBucket, originalObjectName, stream, contentType);
 
@@ -73,25 +66,23 @@ namespace ThumbnailService.Controllers
             _db.ImageUploads.Add(image);
             await _db.SaveChangesAsync();
 
-            // Publish event for async thumbnail creation (Pub/Sub)
-            //await PublishThumbnailJobAsync(image.Id, userId, originalObjectName);
+            // Generate thumbnail synchronously after upload
+            await using var thumbInputStream = file.OpenReadStream();
+            var thumbBytes = await _thumbnail.GenerateFilledThumbnailAsync(thumbInputStream);
+            var thumbObjectName = $"thumbnails/{userId}/{image.Id}.png";
+            await using var thumbStream = new MemoryStream(thumbBytes);
+            await _storage.UploadAsync(_thumbnailsBucket, thumbObjectName, thumbStream, "image/png");
 
-            TempData["Message"] = "Upload complete. Thumbnail will be generated soon.";
-            return RedirectToAction("List", "Image");
-        }
+            image.ThumbnailGcsPath = thumbObjectName;
+            image.ThumbnailStatus = ThumbnailStatus.Completed;
+            await _db.SaveChangesAsync();
 
-        // This method should publish a message to Pub/Sub for async thumbnail creation
-        private async Task PublishThumbnailJobAsync(Guid imageId, Guid userId, string gcsPath)
-        {
-            var job = new ThumbnailService.Services.ThumbnailJob
-            {
-                ImageId = imageId,
-                UserId = userId,
-                GcsPath = gcsPath
-            };
-            await _pubSub.PublishAsync(job);
+            return Ok(new { 
+                message = "Upload and thumbnail complete", 
+                imageId = image.Id,
+                fileName = image.OriginalFileName,
+                thumbnailUrl = _storage.GetPublicUrl(_thumbnailsBucket, thumbObjectName)
+            });
         }
     }
 }
-
-
